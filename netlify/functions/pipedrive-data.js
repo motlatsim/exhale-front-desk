@@ -2,14 +2,16 @@
 // Fetches deals + stages from Pipedrive's REST API using a server-side token.
 // The browser never sees the token — it just calls this function.
 
-export default async (req, context) => {
-  const token = Netlify.env.get("PIPEDRIVE_API_TOKEN");
+exports.handler = async function (event, context) {
+  const token = process.env.PIPEDRIVE_API_TOKEN;
 
   if (!token) {
-    return new Response(JSON.stringify({ error: "PIPEDRIVE_API_TOKEN not set" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
+    // Temporary debug info: names only, never values, so we can see what IS present.
+    const envKeys = Object.keys(process.env).filter(k => !k.startsWith("AWS") && !k.startsWith("_"));
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "PIPEDRIVE_API_TOKEN not set", visibleEnvKeys: envKeys })
+    };
   }
 
   try {
@@ -22,24 +24,17 @@ export default async (req, context) => {
     const stagesJson = await stagesRes.json();
 
     if (!dealsJson.success || !stagesJson.success) {
-      return new Response(JSON.stringify({ error: "Pipedrive API error", dealsJson, stagesJson }), {
-        status: 502,
-        headers: { "Content-Type": "application/json" }
-      });
+      return {
+        statusCode: 502,
+        body: JSON.stringify({ error: "Pipedrive API error", dealsJson, stagesJson })
+      };
     }
 
-    return new Response(JSON.stringify({ deals: dealsJson.data || [], stages: stagesJson.data || [] }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
-    });
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ deals: dealsJson.data || [], stages: stagesJson.data || [] })
+    };
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
-};
-
-export const config = {
-  path: "/api/pipedrive-data"
 };
