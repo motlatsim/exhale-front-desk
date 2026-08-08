@@ -427,41 +427,9 @@ async function refreshFromPipedrive(){
   btn.disabled = true;
   syncText.textContent = "Syncing…";
   try{
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [{
-          role: "user",
-          content: "Call the Pipedrive getDeals tool with limit 200, and the Pipedrive getStages tool with no pipeline filter. Then respond with ONLY a single JSON object, no markdown fences, no prose, of the exact shape {\"deals\": [...the raw array from getDeals' data field...], \"stages\": [...the raw array from getStages' data field...]}."
-        }],
-        mcp_servers: [{ type: "url", url: PIPEDRIVE_MCP_URL, name: "pipedrive-mcp" }]
-      })
-    });
-    if(!resp.ok) throw new Error("API error " + resp.status);
-    const data = await resp.json();
-
-    let parsed = null;
-    const textBlocks = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n").trim();
-    try{ parsed = JSON.parse(textBlocks); }catch(e){}
-
-    if(!parsed || !parsed.deals || !parsed.stages){
-      const toolResults = (data.content || []).filter(b => b.type === "mcp_tool_result");
-      let deals = null, stages = null;
-      for(const block of toolResults){
-        const txt = block?.content?.[0]?.text;
-        if(!txt) continue;
-        try{
-          const j = JSON.parse(txt);
-          const arr = j.data || j;
-          if(Array.isArray(arr) && arr.length && arr[0].hasOwnProperty("stage_id")) deals = arr;
-          if(Array.isArray(arr) && arr.length && arr[0].hasOwnProperty("deal_probability")) stages = arr;
-        }catch(e){}
-      }
-      if(deals && stages) parsed = { deals, stages };
-    }
+    const resp = await fetch("/.netlify/functions/pipedrive-data");
+    if(!resp.ok) throw new Error("Function error " + resp.status);
+    const parsed = await resp.json();
 
     if(!parsed || !parsed.deals || !parsed.stages) throw new Error("Could not parse Pipedrive response");
 
