@@ -100,7 +100,7 @@
 
   .grid{
     display:grid;
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: 1.2fr 1fr 1fr;
     gap:18px;
   }
   .panel{
@@ -144,6 +144,19 @@
     background: var(--cream); color:var(--ink-soft); border:1px solid var(--hairline);
   }
   .lead-stage.hot{ background: rgba(32,201,151,0.12); color: var(--green-deep); border-color: transparent; }
+
+  .li-row{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 0;
+    border-bottom:1px solid var(--hairline);
+  }
+  .li-row:last-child{ border-bottom:none; }
+  .li-dot{ width:8px; height:8px; border-radius:50%; background:var(--hairline); flex-shrink:0; }
+  .li-dot.unseen{ background:var(--green); }
+  .li-main{ flex:1; min-width:0; }
+  .li-title{ font-weight:700; font-size:13px; }
+  .li-meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .li-right{ text-align:right; flex-shrink:0; font-size:11px; color:var(--ink-soft); font-weight:600; }
 
   .attn-row{
     display:flex; align-items:center; gap:12px;
@@ -269,12 +282,23 @@
       <div class="panel">
         <div class="panel-head">
           <div>
-            <div class="panel-title">Incoming Leads</div>
-            <div class="panel-sub">Most recent enquiries, newest first</div>
+            <div class="panel-title">Recent Enquiries</div>
+            <div class="panel-sub">Newest deals, across all pipelines</div>
           </div>
           <span class="count-pill" id="leadsPill">0</span>
         </div>
         <div id="leadsList"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Leads Inbox</div>
+            <div class="panel-sub">Not yet converted to a deal</div>
+          </div>
+          <span class="count-pill" id="leadsInboxPill">0</span>
+        </div>
+        <div id="leadsInboxList"></div>
       </div>
 
       <div class="panel">
@@ -360,11 +384,14 @@ setInterval(tickClock, 1000 * 30);
 
 const ACTIVITY_ICONS = { call: "📞", meeting: "🤝", email: "✉️", task: "☑️", deadline: "⏰", lunch: "🍽️" };
 
-function computeAndRender(deals, stages, activities){
+function computeAndRender(deals, stages, activities, leads){
   activities = activities || [];
+  leads = leads || [];
   const realDeals = deals.filter(d => !(d.title || "").startsWith("[Sample]"));
   const open = realDeals.filter(d => d.status === "open");
   const won = realDeals.filter(d => d.status === "won");
+  const activeLeads = leads.filter(l => !l.is_archived);
+  const unseenLeads = activeLeads.filter(l => !l.was_seen);
 
   const stageById = {};
   stages.forEach(s => stageById[s.id] = s);
@@ -429,6 +456,11 @@ function computeAndRender(deals, stages, activities){
       <div class="stat-value">${todaysActivities.length}</div>
       <div class="stat-foot">${overdueActivities.length} overdue from earlier</div>
     </div>
+    <div class="stat-card ${unseenLeads.length ? "attention" : ""}">
+      <div class="stat-label">Leads Inbox</div>
+      <div class="stat-value">${activeLeads.length}</div>
+      <div class="stat-foot">${unseenLeads.length} not yet seen</div>
+    </div>
   `;
 
   // Incoming leads — newest first
@@ -449,6 +481,21 @@ function computeAndRender(deals, stages, activities){
       </div>
     </div>`;
   }).join("") : `<div class="empty-state">No leads yet</div>`;
+
+  // Leads Inbox — actual Pipedrive Lead objects, not yet converted to deals
+  const sortedLeads = [...activeLeads].sort((a,b) => new Date(b.add_time) - new Date(a.add_time)).slice(0, 8);
+  document.getElementById("leadsInboxPill").textContent = activeLeads.length;
+  document.getElementById("leadsInboxList").innerHTML = sortedLeads.length ? sortedLeads.map(l => {
+    const val = l.value && l.value.amount ? fmt(l.value.amount) : "Value TBC";
+    return `<div class="li-row">
+      <span class="li-dot ${!l.was_seen ? "unseen" : ""}"></span>
+      <div class="li-main">
+        <div class="li-title">${l.title}</div>
+        <div class="li-meta">${val}${l.channel_id ? " · " + l.channel_id : ""}</div>
+      </div>
+      <div class="li-right">${timeAgo(l.add_time)}</div>
+    </div>`;
+  }).join("") : `<div class="empty-state">Inbox is empty</div>`;
 
   // Needs follow-up list
   const overdue = followUp.slice(0, 8);
@@ -496,7 +543,8 @@ function computeAndRender(deals, stages, activities){
 const initialDeals = [{"id": 1, "title": "[Sample] Benjamin Leon", "value": 29000.0, "stage_id": 5, "status": "won", "pipeline_id": 1, "add_time": "2026-06-12T09:00:32Z", "stage_change_time": "2026-06-15T21:36:14Z", "channel_id": null}, {"id": 3, "title": "Chrank Shaw", "value": 0.0, "stage_id": 1, "status": "lost", "pipeline_id": 1, "add_time": "2026-06-12T09:13:12Z", "stage_change_time": null, "channel_id": null}, {"id": 6, "title": "Private", "value": 6000.0, "stage_id": 3, "status": "won", "pipeline_id": 1, "add_time": "2026-06-15T11:02:52Z", "stage_change_time": "2026-06-15T16:39:23Z", "channel_id": null}, {"id": 8, "title": "MQ deal", "value": 3000.0, "stage_id": 14, "status": "won", "pipeline_id": 2, "add_time": "2026-07-07T15:31:50Z", "stage_change_time": null, "channel_id": null}, {"id": 9, "title": "Uviwe deal", "value": 39100.0, "stage_id": 16, "status": "won", "pipeline_id": 2, "add_time": "2026-07-07T15:46:03Z", "stage_change_time": null, "channel_id": null}, {"id": 10, "title": "Uviwe Matoti deal", "value": 50000.0, "stage_id": 16, "status": "open", "pipeline_id": 2, "add_time": "2026-07-07T19:04:13Z", "stage_change_time": "2026-07-07T20:10:24Z", "channel_id": null}, {"id": 11, "title": "MQ Mpahleni deal", "value": 0.0, "stage_id": 15, "status": "open", "pipeline_id": 2, "add_time": "2026-07-07T21:22:05Z", "stage_change_time": "2026-07-11T05:59:13Z", "channel_id": "Whatsapp"}, {"id": 12, "title": "National Housing Finance Corporatiom deal", "value": 156000.0, "stage_id": 11, "status": "open", "pipeline_id": 2, "add_time": "2026-07-07T22:43:08Z", "stage_change_time": null, "channel_id": "Msizi"}, {"id": 13, "title": "Ncedisizwe Funeral Home deal", "value": 0.0, "stage_id": 18, "status": "open", "pipeline_id": 3, "add_time": "2026-07-09T10:27:12Z", "stage_change_time": null, "channel_id": null}, {"id": 14, "title": "Chrank Shaw deal", "value": 1000.0, "stage_id": 21, "status": "open", "pipeline_id": 3, "add_time": "2026-07-09T11:28:32Z", "stage_change_time": null, "channel_id": null}, {"id": 15, "title": "Grace - Custom double headstone inquiry", "value": 25000.0, "stage_id": 1, "status": "open", "pipeline_id": 1, "add_time": "2026-07-14T03:09:30Z", "stage_change_time": null, "channel_id": "Claude"}, {"id": 16, "title": "Luyanda Bangani Deal", "value": 1960.0, "stage_id": 2, "status": "open", "pipeline_id": 1, "add_time": "2026-07-23T14:54:18Z", "stage_change_time": "2026-07-24T20:14:26Z", "channel_id": "In person"}, {"id": 17, "title": "Grave Upgrade - Perm Ngudle (brother's grave)", "value": 0.0, "stage_id": 1, "status": "open", "pipeline_id": 1, "add_time": "2026-08-01T13:52:49Z", "stage_change_time": null, "channel_id": "Claude"}];
 const initialStages = [{"id": 1, "name": "\ud83c\udf31 New Enquiry", "order_nr": 0, "pipeline_id": 1, "deal_probability": 20, "is_deal_rot_enabled": true, "days_to_rotten": 2}, {"id": 2, "name": "\ud83e\uddd1\ud83c\udffe\u200d\ud83d\udcbb Consultation & Design Selection", "order_nr": 1, "pipeline_id": 1, "deal_probability": 50, "is_deal_rot_enabled": true, "days_to_rotten": 2}, {"id": 3, "name": " \ud83e\uddfe Quotation Sent", "order_nr": 2, "pipeline_id": 1, "deal_probability": 60, "is_deal_rot_enabled": true, "days_to_rotten": 5}, {"id": 4, "name": "\ud83d\udce4 Order Confirmed / Deposit Paid", "order_nr": 3, "pipeline_id": 1, "deal_probability": 90, "is_deal_rot_enabled": true, "days_to_rotten": 1}, {"id": 5, "name": "\ud83d\uddff Artwork In Progress", "order_nr": 4, "pipeline_id": 1, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 4}, {"id": 6, "name": "\u2705 Artwork Approved", "order_nr": 5, "pipeline_id": 1, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 3}, {"id": 7, "name": "\u2699\ufe0f Engraving in Progress", "order_nr": 6, "pipeline_id": 1, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 4}, {"id": 8, "name": "\ud83d\ude9b Ready for Dispatch / Installation", "order_nr": 7, "pipeline_id": 1, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 5}, {"id": 9, "name": "\u2709\ufe0f Installed / Completed", "order_nr": 8, "pipeline_id": 1, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 4}, {"id": 10, "name": "\ud83c\udfaf After Sales / Feedback", "order_nr": 9, "pipeline_id": 1, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 30}, {"id": 11, "name": "Enquiry", "order_nr": 1, "pipeline_id": 2, "deal_probability": 10, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 12, "name": "Site visit booked", "order_nr": 2, "pipeline_id": 2, "deal_probability": 30, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 13, "name": "Concept & estimate", "order_nr": 3, "pipeline_id": 2, "deal_probability": 50, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 14, "name": "Proposal sent", "order_nr": 4, "pipeline_id": 2, "deal_probability": 70, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 15, "name": "Negotiation / revisions", "order_nr": 5, "pipeline_id": 2, "deal_probability": 80, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 16, "name": "Contract & deposit", "order_nr": 6, "pipeline_id": 2, "deal_probability": 100, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 17, "name": "Qualified", "order_nr": 1, "pipeline_id": 3, "deal_probability": 50, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 18, "name": "Contact Made", "order_nr": 2, "pipeline_id": 3, "deal_probability": 50, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 19, "name": "Demo Scheduled", "order_nr": 3, "pipeline_id": 3, "deal_probability": 50, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 20, "name": "Proposal Made", "order_nr": 4, "pipeline_id": 3, "deal_probability": 60, "is_deal_rot_enabled": false, "days_to_rotten": null}, {"id": 21, "name": "Negotiations Started", "order_nr": 5, "pipeline_id": 3, "deal_probability": 90, "is_deal_rot_enabled": true, "days_to_rotten": 0}, {"id": 22, "name": "Enquiry (browsing stock/catalog)", "order_nr": 1, "pipeline_id": 4, "deal_probability": 20, "is_deal_rot_enabled": true, "days_to_rotten": 1}, {"id": 23, "name": "Quote or Invoice Sent", "order_nr": 2, "pipeline_id": 4, "deal_probability": 50, "is_deal_rot_enabled": true, "days_to_rotten": 1}, {"id": 24, "name": "Payment Received", "order_nr": 3, "pipeline_id": 4, "deal_probability": 90, "is_deal_rot_enabled": true, "days_to_rotten": 3}, {"id": 25, "name": "Ready for Collection/Dispatch", "order_nr": 4, "pipeline_id": 4, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 3}, {"id": 26, "name": "Completed", "order_nr": 5, "pipeline_id": 4, "deal_probability": 100, "is_deal_rot_enabled": true, "days_to_rotten": 3}];
 const initialActivities = [{"id": 30, "subject": "Home visit - Perm Ngudle (grave upgrade + retaining wall)", "type": "meeting", "deal_id": 17, "due_date": "2026-08-15", "due_time": "12:00", "done": false}, {"id": 28, "subject": "Check back with Graham Polmann (Cranshaw) on catalog quote", "type": "call", "deal_id": 14, "due_date": "2026-07-18", "due_time": null, "done": true}, {"id": 27, "subject": "Follow up with Ncedisizwe Funeral Home", "type": "call", "deal_id": 13, "due_date": "2026-07-17", "due_time": null, "done": false}, {"id": 26, "subject": "Follow up with National Housing Finance Corporation", "type": "call", "deal_id": 12, "due_date": "2026-07-16", "due_time": null, "done": false}, {"id": 25, "subject": "Follow up on Uviwe Matoti deal ahead of close date", "type": "call", "deal_id": 10, "due_date": "2026-07-15", "due_time": null, "done": false}, {"id": 29, "subject": "Call with Graham Polmann - Cranshaw pricing", "type": "call", "deal_id": 14, "due_date": "2026-07-14", "due_time": null, "done": true}, {"id": 24, "subject": "Follow up on MacMo Deal - past expected close", "type": "call", "deal_id": 7, "due_date": "2026-07-14", "due_time": null, "done": true}, {"id": 23, "subject": "Discuss take off material material and propose a project execution", "type": "meeting", "deal_id": 11, "due_date": "2026-07-14", "due_time": "15:00", "done": false}, {"id": 22, "subject": "Follow up on the pricing", "type": "call", "deal_id": 14, "due_date": "2026-07-13", "due_time": "07:00", "done": true}, {"id": 18, "subject": "Update the takeoff BOQ", "type": "task", "deal_id": 8, "due_date": "2026-07-08", "due_time": "19:00", "done": true}];
-computeAndRender(initialDeals, initialStages, initialActivities);
+const initialLeads = [{"id": "716a4320-9367-11f1-9bd5-2be952963394", "title": "Grace - Custom double headstone inquiry", "value": {"amount": 25000, "currency": "ZAR"}, "channel_id": "Claude", "was_seen": false, "is_archived": false, "add_time": "2026-08-08T20:26:31.890Z"}];
+computeAndRender(initialDeals, initialStages, initialActivities, initialLeads);
 
 let refreshTimer = null;
 
@@ -514,7 +562,7 @@ async function refreshFromPipedrive(){
 
     if(!parsed || !parsed.deals || !parsed.stages) throw new Error("Could not parse Pipedrive response");
 
-    computeAndRender(parsed.deals, parsed.stages, parsed.activities || []);
+    computeAndRender(parsed.deals, parsed.stages, parsed.activities || [], parsed.leads || []);
     syncText.textContent = "Live";
   }catch(err){
     banner.textContent = "Couldn't refresh from Pipedrive (" + err.message + "). Showing the last synced data.";
