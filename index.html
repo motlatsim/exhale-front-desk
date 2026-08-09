@@ -47,14 +47,11 @@
     gap:12px;
     flex-shrink:0;
   }
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .brand-mark{
-    width:38px; height:38px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .brand-mark svg{ width:100%; height:100%; }
-  .brand-name{ font-family:'Poppins', sans-serif; font-weight:700; font-size:19px; letter-spacing:0.2px; }
-  .brand-name span{ color: var(--green); }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .brand-logo{ display:inline-flex; flex-direction:column; align-items:flex-start; line-height:1; position:relative; }
+  .brand-word{ position:relative; display:inline-block; font-family:'Poppins', sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.01em; color:#F3EEE8; }
+  .brand-arrow{ position:absolute; top:-7px; right:-13px; width:13px; height:13px; }
+  .brand-dot{ font-family:'Inter', 'Nunito', sans-serif; font-weight:400; font-size:10px; color:#9A9CA6; margin-top:2px; padding-left:2px; letter-spacing:0.01em; }
   .brand-sub{ font-size:11px; color:#B9BAC4; letter-spacing:0.8px; text-transform:uppercase; margin-top:1px; }
   .header-right{ display:flex; align-items:center; gap:18px; }
   .clock{ text-align:right; }
@@ -281,7 +278,6 @@
     display:flex; align-items:center; justify-content:center;
     flex-direction:column; gap:18px;
   }
-  #gate .gate-mark{ width:52px; height:52px; }
   #gate .gate-title{ font-family:'Poppins', sans-serif; color:#F3EEE8; font-size:20px; font-weight:700; }
   #gate .gate-title span{ color:var(--green); }
   #gate form{ display:flex; flex-direction:column; gap:12px; width:260px; }
@@ -298,15 +294,19 @@
   #gate button:hover{ background: var(--green-deep); color:#fff; }
   #gate .gate-error{ color:#E6A79A; font-size:12px; text-align:center; min-height:16px; }
   .shell{ display:none; }
+  .gate-brand-logo{ align-items:center; }
+  .gate-brand-word{ font-size:34px; color:#F3EEE8; }
+  .gate-brand-arrow{ width:22px; height:22px; top:-13px; right:-22px; }
+  .gate-brand-dot{ font-size:14px; margin-top:6px; }
 </style>
 </head>
 <body>
 <div id="gate">
-  <svg class="gate-mark" viewBox="0 0 100 100" fill="none">
-    <path d="M55 30 L75 30 L75 10" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M40 45 L60 45 L60 25" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-  <div class="gate-title">exhale<span>.</span>memorials — Front Desk</div>
+  <div class="brand-logo gate-brand-logo">
+    <span class="brand-word gate-brand-word">exhale<svg class="brand-arrow gate-brand-arrow" viewBox="0 0 40 40" fill="none"><path d="M20 6h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/><path d="M8 18h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/></svg></span>
+    <span class="brand-dot gate-brand-dot">.memorials</span>
+  </div>
+  <div class="gate-title">Front Desk</div>
   <form id="gateForm">
     <input type="password" id="gatePassword" placeholder="Enter password" autofocus>
     <button type="submit">Unlock</button>
@@ -316,16 +316,11 @@
 <div class="shell">
   <header>
     <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 100 100" fill="none">
-          <path d="M55 30 L75 30 L75 10" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M40 45 L60 45 L60 25" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+      <div class="brand-logo">
+        <span class="brand-word">exhale<svg class="brand-arrow" viewBox="0 0 40 40" fill="none"><path d="M20 6h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/><path d="M8 18h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/></svg></span>
+        <span class="brand-dot">.memorials</span>
       </div>
-      <div>
-        <div class="brand-name">exhale<span>.</span>memorials</div>
-        <div class="brand-sub">Front Desk Monitor</div>
-      </div>
+      <div class="brand-sub" style="align-self:center;">Front Desk Monitor</div>
     </div>
     <div class="header-right">
       <div class="sync-pill"><span class="sync-dot"></span><span id="syncText">Live</span></div>
