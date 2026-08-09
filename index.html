@@ -441,6 +441,14 @@ const PIPEDRIVE_MCP_URL = "https://mcp.pipedrive.ai/mcp";
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 const fmt = n => "R " + Number(n).toLocaleString("en-ZA", {maximumFractionDigits:0});
 
+// State used by computeAndRender and the Escalations tab — declared here,
+// before computeAndRender is defined/called, to avoid a temporal-dead-zone
+// error on first page load.
+let currentWideTab = "schedule";
+let escConversations = [];
+let selectedConversationId = null;
+let escLoadedOnce = false;
+
 function initials(name){
   return (name||"?").split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
 }
@@ -660,10 +668,6 @@ document.getElementById("refreshBtn").addEventListener("click", refreshFromPiped
 refreshTimer = setInterval(refreshFromPipedrive, REFRESH_INTERVAL_MS);
 
 // --- Escalations tab ---
-let currentWideTab = "schedule";
-let escConversations = [];
-let selectedConversationId = null;
-let escLoadedOnce = false;
 
 function switchTab(tab){
   currentWideTab = tab;
