@@ -23,6 +23,19 @@
     --rust-pale:#F5E1DD;
     --shadow: 0 1px 2px rgba(43,45,55,0.05), 0 10px 28px rgba(43,45,55,0.07);
   }
+  :root[data-theme="dark"]{
+    --cream:#1A1B21;
+    --card:#24252D;
+    --ink:#F3EEE8;
+    --ink-soft:#9A9CA6;
+    --hairline:rgba(255,255,255,0.09);
+    --amber:#E0A548;
+    --amber-pale:rgba(224,165,72,0.16);
+    --rust:#E2776A;
+    --rust-pale:rgba(226,119,106,0.16);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.35);
+  }
+  body, .stat-card, .panel{ transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
   *{box-sizing:border-box; margin:0; padding:0;}
   html, body{
     height:100%;
@@ -338,6 +351,9 @@
       <button class="refresh-btn" id="refreshBtn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 2v6h-6M3 22v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L21 8M20.5 15a9 9 0 0 1-14.9 3.4L3 16"/></svg>
         Refresh
+      </button>
+      <button class="refresh-btn" id="themeToggleBtn" aria-label="Toggle dark mode">
+        <svg id="themeIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
       </button>
       <div class="clock">
         <div class="time" id="clockTime">--:--</div>
@@ -673,6 +689,20 @@ async function refreshFromPipedrive(){
 
 document.getElementById("refreshBtn").addEventListener("click", refreshFromPipedrive);
 refreshTimer = setInterval(refreshFromPipedrive, REFRESH_INTERVAL_MS);
+
+// --- Dark mode toggle ---
+const SUN_PATH = `<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>`;
+const MOON_PATH = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>`;
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  document.getElementById("themeIcon").innerHTML = theme === "dark" ? SUN_PATH : MOON_PATH;
+}
+applyTheme(localStorage.getItem("exhale_desk_theme") || "light");
+document.getElementById("themeToggleBtn").addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  localStorage.setItem("exhale_desk_theme", next);
+  applyTheme(next);
+});
 
 // --- Escalations tab ---
 
