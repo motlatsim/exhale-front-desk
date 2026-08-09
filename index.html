@@ -24,13 +24,17 @@
     --shadow: 0 1px 2px rgba(43,45,55,0.05), 0 10px 28px rgba(43,45,55,0.07);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{
+    height:100%;
+    overflow:hidden;
+  }
   body{
     font-family:'Nunito', sans-serif;
     background: var(--cream);
     color: var(--ink);
     -webkit-font-smoothing:antialiased;
   }
-  .shell{ min-height:100vh; display:flex; flex-direction:column; }
+  .shell{ height:100vh; display:flex; flex-direction:column; }
 
   header{
     background: var(--slate);
@@ -41,6 +45,7 @@
     justify-content:space-between;
     flex-wrap:wrap;
     gap:12px;
+    flex-shrink:0;
   }
   .brand{ display:flex; align-items:center; gap:12px; }
   .brand-mark{
@@ -73,18 +78,19 @@
   .refresh-btn:hover{ background: rgba(255,255,255,0.08); }
   .refresh-btn:disabled{ opacity:0.5; cursor:default; }
 
-  main{ flex:1; padding: 26px 32px 40px; max-width:1400px; margin:0 auto; width:100%; }
+  main{ flex:1; min-height:0; overflow:hidden; padding: 20px 32px 20px; max-width:1400px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:14px; }
 
   .error-banner{
     background: var(--rust-pale); color:var(--rust); border-radius:10px;
-    padding:10px 14px; font-size:12.5px; margin-bottom:18px; display:none;
+    padding:10px 14px; font-size:12.5px; display:none;
+    flex-shrink:0;
   }
 
   .stat-row{
     display:grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap:16px;
-    margin-bottom:22px;
+    gap:14px;
+    flex-shrink:0;
   }
   .stat-card{
     background: var(--card);
@@ -98,20 +104,39 @@
   .stat-value{ font-family:'Poppins', sans-serif; font-size:30px; font-weight:700; margin-top:6px; }
   .stat-foot{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
 
+  .content-area{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
   .grid{
     display:grid;
     grid-template-columns: 1.2fr 1fr 1fr;
     gap:18px;
+    flex:1 1 56%;
+    min-height:0;
   }
   .panel{
     background: var(--card);
     border-radius:16px;
     box-shadow: var(--shadow);
-    padding:22px;
+    padding:20px 22px;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow:hidden;
   }
   .panel-head{
     display:flex; justify-content:space-between; align-items:center;
-    margin-bottom:16px;
+    margin-bottom:14px;
+    flex-shrink:0;
+  }
+  .panel-list{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
   }
   .panel-title{ font-family:'Poppins', sans-serif; font-size:16.5px; font-weight:700; }
   .panel-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
@@ -172,7 +197,48 @@
   .attn-days{ font-size:11px; font-weight:800; color:var(--amber); text-align:right; }
   .attn-days.overdue{ color:var(--rust); }
 
-  .panel-wide{ margin-top:18px; }
+  .panel-wide{ flex:1 1 40%; min-height:0; margin-top:0; }
+
+  .tab-row{ display:flex; gap:6px; }
+  .tab-btn{
+    font-family:'Nunito',sans-serif; font-weight:700; font-size:11.5px;
+    padding:6px 12px; border-radius:20px; border:1px solid var(--hairline);
+    background:var(--cream); color:var(--ink-soft); cursor:pointer;
+  }
+  .tab-btn.active{ background:var(--slate); color:#F3EEE8; border-color:var(--slate); }
+  .tab-panel{ display:none; flex:1; min-height:0; overflow-y:auto; }
+  .tab-panel.active{ display:block; }
+  .tab-panel.esc-active{ display:flex; }
+
+  .esc-layout{ display:flex; gap:16px; flex:1; min-height:0; width:100%; }
+  .esc-list{ flex:0 0 30%; min-width:200px; overflow-y:auto; border-right:1px solid var(--hairline); padding-right:14px; }
+  .esc-row{
+    padding:11px 8px; border-radius:10px; cursor:pointer;
+    border:1px solid transparent; margin-bottom:4px;
+  }
+  .esc-row:hover{ background:var(--cream); }
+  .esc-row.selected{ background:rgba(32,201,151,0.1); border-color:var(--green); }
+  .esc-row-name{ font-weight:700; font-size:13px; }
+  .esc-row-msg{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .esc-row-time{ font-size:10px; color:var(--ink-soft); margin-top:3px; }
+
+  .esc-thread{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; }
+  .esc-messages{ flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 4px 10px; }
+  .esc-bubble{ max-width:70%; padding:9px 13px; border-radius:14px; font-size:13px; line-height:1.4; }
+  .esc-bubble.inbound{ align-self:flex-start; background:var(--cream); color:var(--ink); border-bottom-left-radius:4px; }
+  .esc-bubble.outbound{ align-self:flex-end; background:var(--green); color:#0e2a20; border-bottom-right-radius:4px; }
+  .esc-bubble-time{ font-size:9.5px; opacity:0.6; margin-top:3px; }
+  .esc-reply-row{ flex-shrink:0; display:flex; gap:8px; padding-top:10px; border-top:1px solid var(--hairline); margin-top:8px; }
+  .esc-reply-input{
+    flex:1; padding:10px 13px; border-radius:20px; border:1px solid var(--hairline);
+    font-family:'Nunito',sans-serif; font-size:13px; background:var(--cream);
+  }
+  .esc-send-btn{
+    background:var(--green); color:#0e2a20; border:none; font-weight:800; font-size:12.5px;
+    padding:0 18px; border-radius:20px; cursor:pointer;
+  }
+  .esc-send-btn:disabled{ opacity:0.5; cursor:default; }
+  .esc-empty{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:13px; flex-direction:column; gap:6px; }
   .act-row{
     display:flex; align-items:center; gap:14px;
     padding:13px 0;
@@ -198,8 +264,9 @@
   .empty-state{ padding:30px 0; text-align:center; color:var(--ink-soft); font-size:13px; }
 
   footer{
-    text-align:center; font-size:11px; color:var(--ink-soft);
-    padding: 6px 0 20px;
+    text-align:center; font-size:10.5px; color:var(--ink-soft);
+    flex-shrink:0;
+    padding: 2px 0 0;
   }
 
   @media (max-width: 980px){
@@ -278,50 +345,70 @@
 
     <div class="stat-row" id="statRow"></div>
 
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">Recent Enquiries</div>
-            <div class="panel-sub">Newest deals, across all pipelines</div>
+    <div class="content-area">
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Recent Enquiries</div>
+              <div class="panel-sub">Newest deals, across all pipelines</div>
+            </div>
+            <span class="count-pill" id="leadsPill">0</span>
           </div>
-          <span class="count-pill" id="leadsPill">0</span>
+          <div class="panel-list" id="leadsList"></div>
         </div>
-        <div id="leadsList"></div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Leads Inbox</div>
+              <div class="panel-sub">Not yet converted to a deal</div>
+            </div>
+            <span class="count-pill" id="leadsInboxPill">0</span>
+          </div>
+          <div class="panel-list" id="leadsInboxList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Needs Follow-Up</div>
+              <div class="panel-sub">Deals going quiet in their stage</div>
+            </div>
+            <span class="count-pill" id="attnPill">0</span>
+          </div>
+          <div class="panel-list" id="attnList"></div>
+        </div>
       </div>
 
-      <div class="panel">
+      <div class="panel panel-wide">
         <div class="panel-head">
           <div>
-            <div class="panel-title">Leads Inbox</div>
-            <div class="panel-sub">Not yet converted to a deal</div>
+            <div class="panel-title" id="wideTitle">Schedule &amp; Activities</div>
+            <div class="panel-sub" id="wideSub">Overdue and upcoming calls, meetings &amp; tasks from Pipedrive</div>
           </div>
-          <span class="count-pill" id="leadsInboxPill">0</span>
-        </div>
-        <div id="leadsInboxList"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">Needs Follow-Up</div>
-            <div class="panel-sub">Deals going quiet in their stage</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="count-pill" id="wideCountPill">0</span>
+            <div class="tab-row">
+              <button class="tab-btn active" id="tabScheduleBtn" onclick="switchTab('schedule')">Schedule</button>
+              <button class="tab-btn" id="tabEscalationsBtn" onclick="switchTab('escalations')">Escalations</button>
+            </div>
           </div>
-          <span class="count-pill" id="attnPill">0</span>
         </div>
-        <div id="attnList"></div>
-      </div>
-    </div>
-
-    <div class="panel panel-wide">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Schedule &amp; Activities</div>
-          <div class="panel-sub">Overdue and upcoming calls, meetings &amp; tasks from Pipedrive</div>
+        <div class="tab-panel panel-list active" id="tabSchedule"></div>
+        <div class="tab-panel esc-active" id="tabEscalations" style="display:none;">
+          <div class="esc-layout">
+            <div class="esc-list" id="escList"></div>
+            <div class="esc-thread">
+              <div class="esc-messages" id="escMessages"></div>
+              <div class="esc-reply-row" id="escReplyRow" style="display:none;">
+                <input class="esc-reply-input" id="escReplyInput" placeholder="Type a reply…">
+                <button class="esc-send-btn" id="escSendBtn">Send</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <span class="count-pill" id="actPill">0</span>
       </div>
-      <div id="actList"></div>
     </div>
 
     <footer id="footnote"></footer>
@@ -513,8 +600,9 @@ function computeAndRender(deals, stages, activities, leads){
   }).join("") : `<div class="empty-state">Nothing waiting on a response</div>`;
 
   // Schedule & Activities panel
-  document.getElementById("actPill").textContent = scheduleList.length;
-  document.getElementById("actList").innerHTML = scheduleList.length ? scheduleList.map(a => {
+  window._scheduleCount = scheduleList.length;
+  if(currentWideTab === "schedule") document.getElementById("wideCountPill").textContent = scheduleList.length;
+  document.getElementById("tabSchedule").innerHTML = scheduleList.length ? scheduleList.map(a => {
     const isOverdue = a.due_date < todayStr;
     const isToday = a.due_date === todayStr;
     const linkedDeal = a.deal_id ? dealById[a.deal_id] : null;
@@ -575,6 +663,132 @@ async function refreshFromPipedrive(){
 
 document.getElementById("refreshBtn").addEventListener("click", refreshFromPipedrive);
 refreshTimer = setInterval(refreshFromPipedrive, REFRESH_INTERVAL_MS);
+
+// --- Escalations tab ---
+let currentWideTab = "schedule";
+let escConversations = [];
+let selectedConversationId = null;
+let escLoadedOnce = false;
+
+function switchTab(tab){
+  currentWideTab = tab;
+  document.getElementById("tabScheduleBtn").classList.toggle("active", tab === "schedule");
+  document.getElementById("tabEscalationsBtn").classList.toggle("active", tab === "escalations");
+  document.getElementById("tabSchedule").style.display = tab === "schedule" ? "block" : "none";
+  document.getElementById("tabEscalations").style.display = tab === "escalations" ? "flex" : "none";
+
+  if(tab === "schedule"){
+    document.getElementById("wideTitle").textContent = "Schedule & Activities";
+    document.getElementById("wideSub").textContent = "Overdue and upcoming calls, meetings & tasks from Pipedrive";
+    document.getElementById("wideCountPill").textContent = window._scheduleCount || 0;
+  }else{
+    document.getElementById("wideTitle").textContent = "Escalations";
+    document.getElementById("wideSub").textContent = "Open WhatsApp conversations escalated for a human reply";
+    document.getElementById("wideCountPill").textContent = escConversations.length;
+    if(!escLoadedOnce){
+      escLoadedOnce = true;
+      loadEscalations();
+    }
+  }
+}
+
+async function loadEscalations(){
+  document.getElementById("escList").innerHTML = `<div class="esc-empty">Loading…</div>`;
+  try{
+    const resp = await fetch("/.netlify/functions/peach-data");
+    if(!resp.ok){
+      const errText = await resp.text();
+      throw new Error("Function error " + resp.status + ": " + errText.slice(0, 200));
+    }
+    const data = JSON.parse(await resp.text());
+    escConversations = data.conversations || data.data || (Array.isArray(data) ? data : []);
+    document.getElementById("wideCountPill").textContent = escConversations.length;
+    renderEscList();
+  }catch(err){
+    document.getElementById("escList").innerHTML = `<div class="esc-empty">Couldn't load escalations<br><span style="font-size:10.5px">${err.message}</span></div>`;
+  }
+}
+
+function renderEscList(){
+  const list = document.getElementById("escList");
+  if(!escConversations.length){
+    list.innerHTML = `<div class="esc-empty">No open escalations</div>`;
+    return;
+  }
+  list.innerHTML = escConversations.map(c => {
+    const name = (c.subscriber && (c.subscriber.name || c.subscriber.phone_number)) || c.phone_number || "Unknown";
+    const lastMsg = (c.last_inbound && c.last_inbound.text) || "";
+    const time = c.last_activity_at ? timeAgo(c.last_activity_at) : "";
+    return `<div class="esc-row ${c.id === selectedConversationId ? "selected" : ""}" onclick="selectConversation(${c.id})">
+      <div class="esc-row-name">${name}</div>
+      <div class="esc-row-msg">${lastMsg}</div>
+      <div class="esc-row-time">${time}</div>
+    </div>`;
+  }).join("");
+}
+
+async function selectConversation(id){
+  selectedConversationId = id;
+  renderEscList();
+  document.getElementById("escReplyRow").style.display = "flex";
+  document.getElementById("escMessages").innerHTML = `<div class="esc-empty">Loading messages…</div>`;
+  try{
+    const resp = await fetch("/.netlify/functions/peach-data?conversation_id=" + id);
+    if(!resp.ok){
+      const errText = await resp.text();
+      throw new Error("Function error " + resp.status + ": " + errText.slice(0, 200));
+    }
+    const data = JSON.parse(await resp.text());
+    const messages = data.messages || data.data || (Array.isArray(data) ? data : []);
+    renderEscMessages(messages);
+  }catch(err){
+    document.getElementById("escMessages").innerHTML = `<div class="esc-empty">Couldn't load messages<br><span style="font-size:10.5px">${err.message}</span></div>`;
+  }
+}
+
+function renderEscMessages(messages){
+  const box = document.getElementById("escMessages");
+  if(!messages.length){
+    box.innerHTML = `<div class="esc-empty">No messages</div>`;
+    return;
+  }
+  box.innerHTML = messages.map(m => {
+    const dir = m.direction === "outbound" ? "outbound" : "inbound";
+    const text = m.text || m.body || "";
+    const time = m.created_at || m.sent_at || m.timestamp || "";
+    return `<div class="esc-bubble ${dir}">${text}<div class="esc-bubble-time">${time ? timeAgo(time) : ""}</div></div>`;
+  }).join("");
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendEscReply(){
+  const input = document.getElementById("escReplyInput");
+  const btn = document.getElementById("escSendBtn");
+  const text = input.value.trim();
+  if(!text || !selectedConversationId) return;
+  btn.disabled = true;
+  try{
+    const resp = await fetch("/.netlify/functions/peach-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: selectedConversationId, text })
+    });
+    if(!resp.ok){
+      const errText = await resp.text();
+      throw new Error("Send failed (" + resp.status + "): " + errText.slice(0, 200));
+    }
+    input.value = "";
+    selectConversation(selectedConversationId); // reload thread to show the sent message
+  }catch(err){
+    alert(err.message);
+  }finally{
+    btn.disabled = false;
+  }
+}
+document.getElementById("escSendBtn").addEventListener("click", sendEscReply);
+document.getElementById("escReplyInput").addEventListener("keydown", (e) => {
+  if(e.key === "Enter") sendEscReply();
+});
 </script>
 </body>
 </html>
