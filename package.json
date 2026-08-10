@@ -1,0 +1,13 @@
+{
+  "name": "exhale-front-desk",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint . --ext .js"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "jest": "^29.6.0"
+  }
+}
