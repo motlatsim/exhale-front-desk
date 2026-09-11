@@ -4,6 +4,8 @@
 // form. Mirrors exhaleat.com's create-lead.js (Notion write + Peach
 // hand-off), but callable from the Front Desk / CRM app instead.
 
+const { requireKey } = require("./_require-key");
+
 const NOTION_DATABASE_ID = "809dabc9-23dc-4932-9dee-525adb153223";
 const VALID_INTERESTS = ["Tombstones", "Plaques", "Grave Restorations", "Memorial Books", "Not sure yet"];
 const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
@@ -12,6 +14,9 @@ exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed." }) };
   }
+
+  const unauthorized = requireKey(event);
+  if (unauthorized) return unauthorized;
 
   const notionToken = process.env.NOTION_API_KEY;
   if (!notionToken) {

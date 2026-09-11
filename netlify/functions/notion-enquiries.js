@@ -3,9 +3,14 @@
 // server-side using NOTION_API_KEY. The browser never sees the token —
 // it just calls this function. Replaces the old pipedrive-data.js.
 
+const { requireKey } = require("./_require-key");
+
 const NOTION_DATABASE_ID = "809dabc9-23dc-4932-9dee-525adb153223";
 
 exports.handler = async function (event, context) {
+  const unauthorized = requireKey(event);
+  if (unauthorized) return unauthorized;
+
   const token = process.env.NOTION_API_KEY;
 
   if (!token) {

@@ -413,28 +413,38 @@
 <script>
 "use strict";
 
-/* ---------- Gate (shared with Front Desk) ---------- */
-const GATE_HASH = "6dc6da2a4d2f76400701a5c58c07d795098208a2b904f899ec76a024e55f8718";
-async function sha256(text){
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
+/* ---------- Gate (shared with Front Desk) ----------
+   The password check itself runs server-side in crm-auth.js — it hands
+   back CRM_SESSION_KEY only on a correct password, and every data
+   function then requires that key on the x-crm-key header. This is
+   what actually protects the data; the form below is just the UI. */
 function showApp(){
   document.getElementById("gate").style.display = "none";
   document.getElementById("app").classList.add("open");
   boot();
 }
-if(sessionStorage.getItem("exhale_desk_unlocked") === "1") showApp();
+if(sessionStorage.getItem("exhale_crm_key")) showApp();
 document.getElementById("gateForm").addEventListener("submit", async e => {
   e.preventDefault();
   const val = document.getElementById("gatePassword").value;
-  const hash = await sha256(val);
-  if(hash === GATE_HASH){
-    sessionStorage.setItem("exhale_desk_unlocked", "1");
+  const btn = e.target.querySelector("button");
+  const errEl = document.getElementById("gateError");
+  errEl.textContent = "";
+  btn.disabled = true;
+  try{
+    const res = await fetch("/.netlify/functions/crm-auth", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ password: val })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || "Incorrect password");
+    sessionStorage.setItem("exhale_crm_key", data.key);
     showApp();
-  }else{
-    document.getElementById("gateError").textContent = "Incorrect password";
+  }catch(err){
+    errEl.textContent = err.message === "Incorrect password." ? "Incorrect password" : "Couldn't reach the server — try again.";
     document.getElementById("gatePassword").value = "";
+  }finally{
+    btn.disabled = false;
   }
 });
 
@@ -559,8 +569,22 @@ function normalize(e){
   return c;
 }
 
+/* apiFetch attaches the session key handed out by crm-auth.js and bounces
+   back to the gate if the server ever rejects it (key rotated, expired). */
+async function apiFetch(url, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({ "x-crm-key": sessionStorage.getItem("exhale_crm_key") || "" }, opts.headers || {});
+  const res = await fetch(url, opts);
+  if(res.status === 401){
+    sessionStorage.removeItem("exhale_crm_key");
+    location.reload();
+    throw new Error("Session expired — please log in again.");
+  }
+  return res;
+}
+
 async function loadCases(){
-  const resp = await fetch("/.netlify/functions/notion-enquiries");
+  const resp = await apiFetch("/.netlify/functions/notion-enquiries");
   if(!resp.ok) throw new Error("Function error " + resp.status);
   const parsed = await resp.json();
   if(!parsed || !parsed.enquiries) throw new Error("Could not parse response");
@@ -569,7 +593,7 @@ async function loadCases(){
 
 async function loadConversations(){
   try{
-    const resp = await fetch("/.netlify/functions/peach-data");
+    const resp = await apiFetch("/.netlify/functions/peach-data");
     const data = await resp.json();
     if(!resp.ok) throw new Error(data.error || "Peach error " + resp.status);
     const list = Array.isArray(data) ? data : (data.conversations || data.data || data.results || []);
@@ -604,7 +628,7 @@ async function loadAll(){
 
 /* ---------- Writes ---------- */
 async function updateCase(id, patch){
-  const res = await fetch("/.netlify/functions/crm-update", {
+  const res = await apiFetch("/.netlify/functions/crm-update", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ id, ...patch })
   });
@@ -1239,7 +1263,7 @@ document.getElementById("addSaveBtn").addEventListener("click", async () => {
   if(!name || !phone){ status.textContent = "Name and phone are required."; status.className = "save-status err"; return; }
   status.textContent = "Adding…"; status.className = "save-status";
   try{
-    const res = await fetch("/.netlify/functions/crm-create", {
+    const res = await apiFetch("/.netlify/functions/crm-create", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         name, phone,

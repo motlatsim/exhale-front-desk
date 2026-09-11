@@ -10,9 +10,14 @@
 // REST API at all. Message threads and replies are handled by linking out
 // to the real Peach inbox (app.trypeach.ai) instead of guessing further.
 
+const { requireKey } = require("./_require-key");
+
 const BASE = "https://app.trypeach.ai/api/v1";
 
 exports.handler = async function (event, context) {
+  const unauthorized = requireKey(event);
+  if (unauthorized) return unauthorized;
+
   const token = process.env.PEACH_API_TOKEN;
 
   if (!token) {

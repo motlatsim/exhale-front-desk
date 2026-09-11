@@ -10,11 +10,15 @@ const VALID_STATUSES = [
 ];
 const VALID_INTERESTS = ["Tombstones", "Plaques", "Grave Restorations", "Memorial Books", "Not sure yet"];
 const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
+const { requireKey } = require("./_require-key");
 
 exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed." }) };
   }
+
+  const unauthorized = requireKey(event);
+  if (unauthorized) return unauthorized;
 
   const token = process.env.NOTION_API_KEY;
   if (!token) {
