@@ -59,7 +59,14 @@ exports.handler = async function (event, context) {
         installed_date: (p["Installed Date"] && p["Installed Date"].date && p["Installed Date"].date.start) || "",
         notes: richText("Notes"),
         submitted_at: (p["Submitted At"] && p["Submitted At"].date && p["Submitted At"].date.start) || page.created_time,
-        url: page.url
+        updated_at: page.last_edited_time,
+        url: page.url,
+        in_memory_of: richText("In Memory Of"),
+        quoted_value: (p["Quoted Value"] && p["Quoted Value"].number) || 0,
+        amount_paid: (p["Amount Paid"] && p["Amount Paid"].number) || 0,
+        payment_plan: richText("Payment Plan"),
+        production_progress: (p["Production Progress"] && p["Production Progress"].number) || 0,
+        assigned_to: richText("Assigned To")
       };
     });
 

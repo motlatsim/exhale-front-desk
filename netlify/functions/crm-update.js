@@ -65,6 +65,24 @@ exports.handler = async function (event) {
   if (data.installed_date !== undefined) {
     properties["Installed Date"] = data.installed_date ? { date: { start: data.installed_date } } : { date: null };
   }
+  if (data.in_memory_of !== undefined) {
+    properties["In Memory Of"] = { rich_text: [{ text: { content: String(data.in_memory_of).slice(0, 2000) } }] };
+  }
+  if (data.quoted_value !== undefined) {
+    properties["Quoted Value"] = { number: data.quoted_value === null || data.quoted_value === "" ? null : Number(data.quoted_value) };
+  }
+  if (data.amount_paid !== undefined) {
+    properties["Amount Paid"] = { number: data.amount_paid === null || data.amount_paid === "" ? null : Number(data.amount_paid) };
+  }
+  if (data.payment_plan !== undefined) {
+    properties["Payment Plan"] = { rich_text: [{ text: { content: String(data.payment_plan).slice(0, 2000) } }] };
+  }
+  if (data.production_progress !== undefined) {
+    properties["Production Progress"] = { number: data.production_progress === null || data.production_progress === "" ? null : Number(data.production_progress) };
+  }
+  if (data.assigned_to !== undefined) {
+    properties["Assigned To"] = { rich_text: [{ text: { content: String(data.assigned_to).slice(0, 2000) } }] };
+  }
 
   if (Object.keys(properties).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "Nothing to update." }) };

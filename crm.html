@@ -5,259 +5,388 @@
 <title>Exhale Memorials — CRM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --slate:#2B2D37; --green:#20C997; --green-deep:#189873; --cream:#F3EEE8;
-    --card:#FFFFFF; --ink:#2B2D37; --ink-soft:#6B6F7B; --hairline:#E7E2D8;
-    --amber:#C98A20; --rust:#B5493A; --rust-pale:#F5E1DD;
-    --shadow: 0 1px 2px rgba(43,45,55,0.05), 0 10px 28px rgba(43,45,55,0.07);
+    --slate:#2B2D37; --green:#20C997; --green-deep:#128267; --cream:#F3EEE8;
+    --card:#FFFFFF; --ink:#2B2D37; --ink-soft:#6B6F7B; --hairline:#E7E2D8; --hairline-soft:#F2EDE6;
+    --amber:#C98A20; --rust:#B5493A; --rust-pale:#F5E1DD; --panel:#FBF8F4;
+    --shadow: 0 1px 2px rgba(43,45,55,.05), 0 10px 28px rgba(43,45,55,.07);
   }
   :root[data-theme="dark"]{
     --cream:#1A1B21; --card:#24252D; --ink:#F3EEE8; --ink-soft:#9A9CA6;
-    --hairline:rgba(255,255,255,0.09); --rust-pale:rgba(226,119,106,0.16);
-    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.35);
+    --hairline:rgba(255,255,255,.09); --hairline-soft:rgba(255,255,255,.06);
+    --amber:#E0A548; --rust:#E2776A; --rust-pale:rgba(226,119,106,.16); --panel:#2C2D36;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html, body{ height:100%; }
-  body{ font-family:'Nunito', sans-serif; background:var(--cream); color:var(--ink); -webkit-font-smoothing:antialiased; }
-  .shell{ min-height:100vh; display:flex; flex-direction:column; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:var(--green-deep);text-decoration:none}
+  a:hover{color:var(--green)}
+  input,select,textarea,button{font-family:'Nunito',sans-serif}
+  *:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:#DCD5C9;border-radius:10px}
+  .h2{font-family:'Poppins',sans-serif;font-weight:600}
 
-  header{
-    background:var(--slate); color:#F3EEE8; padding:16px 28px;
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-    position:sticky; top:0; z-index:50;
-  }
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .brand-word{ font-family:'Poppins', sans-serif; font-weight:800; font-size:18px; color:#F3EEE8; }
-  .brand-sub{ font-size:11px; color:#B9BAC4; text-transform:uppercase; letter-spacing:0.8px; }
-  .back-link{ font-size:12px; color:#B9BAC4; text-decoration:none; }
-  .back-link:hover{ color:var(--green); }
-  .header-mid{ flex:1; display:flex; align-items:center; gap:12px; min-width:220px; max-width:420px; }
-  .search-input{
-    flex:1; padding:9px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.18);
-    background:rgba(255,255,255,0.07); color:#fff; font-family:'Nunito',sans-serif; font-size:13px;
-  }
-  .search-input::placeholder{ color:#9A9CA8; }
-  .header-right{ display:flex; align-items:center; gap:10px; }
-  .btn{
-    font-family:'Nunito',sans-serif; font-weight:700; font-size:12.5px; cursor:pointer;
-    padding:9px 16px; border-radius:20px; border:none; display:inline-flex; align-items:center; gap:6px;
-  }
-  .btn-primary{ background:var(--green); color:#0e2a20; }
-  .btn-primary:hover{ background:var(--green-deep); color:#fff; }
-  .btn-ghost{ background:none; border:1px solid rgba(255,255,255,0.25); color:#F3EEE8; }
-  .btn-ghost:hover{ background:rgba(255,255,255,0.08); }
-  .view-toggle{ display:flex; background:rgba(255,255,255,0.08); border-radius:20px; padding:3px; }
-  .view-toggle button{
-    background:none; border:none; color:#B9BAC4; font-family:'Nunito',sans-serif; font-weight:700;
-    font-size:12px; padding:6px 13px; border-radius:16px; cursor:pointer;
-  }
-  .view-toggle button.active{ background:var(--green); color:#0e2a20; }
+  /* Gate */
+  #gate{position:fixed;inset:0;z-index:999;background:var(--slate);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+  .brand-logo{display:inline-flex;flex-direction:column;align-items:center;line-height:1;position:relative}
+  .brand-word{position:relative;display:inline-block;font-family:'Poppins',sans-serif;font-weight:800;font-size:32px;letter-spacing:-0.01em;color:#F3EEE8}
+  .brand-arrow{position:absolute;top:-12px;right:-22px;width:21px;height:21px}
+  .brand-dot{font-weight:400;font-size:13px;color:#9A9CA6;margin-top:5px;letter-spacing:.01em}
+  #gate .gate-title{font-family:'Poppins',sans-serif;color:#F3EEE8;font-size:15px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;opacity:.7}
+  #gate form{display:flex;flex-direction:column;gap:12px;width:260px}
+  #gate input{padding:12px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#F3EEE8;font-size:14px}
+  #gate input::placeholder{color:#9A9CA8}
+  #gate button{padding:12px 14px;border-radius:9px;border:none;background:var(--green);color:#12241D;font-weight:800;font-size:13.5px;cursor:pointer}
+  #gate button:hover{background:var(--green-deep);color:#fff}
+  .gate-error{color:#E6A79A;font-size:12px;text-align:center;min-height:16px}
 
-  main{ flex:1; padding:20px 28px 40px; }
-  .error-banner{ background:var(--rust-pale); color:var(--rust); border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:14px; display:none; }
+  /* App shell */
+  .app{display:none;min-height:100vh;background:var(--cream)}
+  .app.open{display:flex}
+  .sidebar{width:236px;flex:0 0 236px;background:var(--slate);padding:22px 14px 18px;display:flex;flex-direction:column;gap:26px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .sidebar .brand-row{display:flex;align-items:center;gap:11px;padding:0 8px}
+  .sidebar .brand-logo{align-items:flex-start}
+  .sidebar .brand-word{font-size:16px}
+  .sidebar .brand-arrow{top:-6px;right:-11px;width:11px;height:11px}
+  .sidebar .brand-dot{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:#8E919E;margin-top:2px}
+  nav.navlist{display:flex;flex-direction:column;gap:2px}
+  .navbtn{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:none;cursor:pointer;border-radius:9px;padding:9px 10px;font-size:13.5px;font-weight:700;background:transparent;color:#B9BAC4}
+  .navbtn:hover{background:rgba(255,255,255,.07)}
+  .navbtn.active{background:rgba(32,201,151,.16);color:#F3EEE8}
+  .navbtn svg{flex:0 0 auto}
+  .navbtn .lbl{flex:1}
+  .navbtn .badge{font-size:11px;font-weight:700;color:#8E919E}
+  .navbtn.active .badge{color:var(--green)}
+  .sidebar-foot{margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;display:flex;align-items:center;gap:10px}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--green);color:#12241D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:0 0 30px}
+  .sidebar-foot .who{font-size:12.5px;font-weight:700;color:#F3EEE8}
+  .sidebar-foot .where{font-size:10.5px;color:#8E919E}
+  .theme-toggle{background:none;border:1px solid rgba(255,255,255,.2);color:#B9BAC4;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 28px}
+  .theme-toggle:hover{background:rgba(255,255,255,.08)}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:16px;padding:18px 26px;background:color-mix(in srgb, var(--cream) 90%, transparent);border-bottom:1px solid var(--hairline);position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
+  .topbar .titles{flex:1 1 auto;min-width:0}
+  .topbar h1{font-family:'Poppins',sans-serif;font-size:20px;font-weight:600;line-height:1.2}
+  .topbar .sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar .actions{display:flex;align-items:center;gap:10px;flex:0 1 auto;min-width:0}
+  .searchbox{width:100%;max-width:260px;min-width:96px;flex:1 1 96px;padding:9px 13px;border-radius:10px;border:1px solid var(--hairline);background:var(--card);font-size:13px;color:var(--ink)}
+  .btn-accent{border:none;cursor:pointer;padding:10px 16px;border-radius:10px;background:var(--green);color:#0E2A20;font-weight:800;font-size:13px;white-space:nowrap;flex:0 0 auto}
+  .btn-accent:hover{background:var(--green-deep);color:#fff}
+  .btn-ghost{border:1px solid var(--hairline);background:var(--card);color:var(--ink);font-weight:700;font-size:12.5px;padding:9px 14px;border-radius:9px;cursor:pointer}
+  .btn-ghost:hover{border-color:var(--green)}
+
+  .content{padding:22px 26px 44px;display:flex;flex-direction:column;gap:18px}
+  .screen{display:none;flex-direction:column;gap:18px}
+  .screen.active{display:flex}
+  .error-banner{background:var(--rust-pale);color:var(--rust);border-radius:10px;padding:10px 14px;font-size:12.5px;display:none}
+  .error-banner.show{display:block}
+
+  /* Stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  .stat-card{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:16px 18px}
+  .stat-card .lbl{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft)}
+  .stat-card .val{font-family:'Poppins',sans-serif;font-size:26px;font-weight:600;margin-top:6px}
+  .stat-card .note{font-size:12px;color:var(--ink-soft);margin-top:4px}
+
+  .panel{background:var(--card);border:1px solid var(--hairline);border-radius:14px}
+
+  /* Dashboard layout */
+  .dash-grid{display:grid;grid-template-columns:1.35fr .95fr;gap:16px;align-items:start}
+  @media (max-width:980px){ .dash-grid{grid-template-columns:1fr} }
+  .panel-head{padding:15px 18px;border-bottom:1px solid var(--hairline-soft);display:flex;align-items:baseline;gap:10px}
+  .panel-head h2{font-size:15px}
+  .panel-head .count{font-size:12px;color:var(--ink-soft)}
+  .today-row{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-bottom:1px solid var(--hairline-soft);cursor:pointer}
+  .today-row:hover{background:var(--panel)}
+  .today-row .bar{width:4px;align-self:stretch;border-radius:4px}
+  .today-row .fam{font-weight:700;font-size:13.5px}
+  .today-row .act{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+  .today-row .when{font-size:11px;font-weight:700;text-align:right}
+  .today-row .stg{font-size:11.5px;color:var(--ink-soft);margin-top:3px;text-align:right}
+  .panel-foot{padding:13px 18px;font-size:12.5px;color:var(--ink-soft)}
+  .stagebar{cursor:pointer;margin-bottom:9px}
+  .stagebar .row{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600}
+  .stagebar .row span:last-child{color:var(--ink-soft)}
+  .stagebar .track{height:6px;border-radius:6px;background:var(--hairline-soft);margin-top:5px;overflow:hidden}
+  .stagebar .fill{height:100%;border-radius:6px}
+  .unveil-card{background:var(--slate);border-radius:14px;padding:18px}
+  .unveil-card .kicker{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:#8E919E;font-weight:700}
+  .unveil-card .name{font-family:'Poppins',sans-serif;font-size:17px;font-weight:600;color:#F3EEE8;margin-top:8px;line-height:1.4}
+  .unveil-card .meta{font-size:12.5px;color:#B9BAC4;margin-top:6px}
+  .unveil-card .rule{height:1px;background:rgba(255,255,255,.12);margin:14px 0}
+  .unveil-card .note{font-size:12.5px;color:#B9BAC4;line-height:1.6}
 
   /* Kanban */
-  .board{ display:flex; gap:14px; overflow-x:auto; padding-bottom:12px; align-items:flex-start; }
-  .col{
-    flex:0 0 250px; background:var(--card); border-radius:14px; box-shadow:var(--shadow);
-    display:flex; flex-direction:column; max-height:calc(100vh - 140px);
-  }
-  .col-head{ padding:13px 14px 10px; border-bottom:1px solid var(--hairline); flex-shrink:0; }
-  .col-title{ font-family:'Poppins',sans-serif; font-weight:700; font-size:12.5px; }
-  .col-count{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
-  .col-body{ flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; min-height:60px; }
-  .col-body.drag-over{ background:rgba(32,201,151,0.08); }
-  .kcard{
-    background:var(--cream); border-radius:10px; padding:11px 12px; cursor:grab;
-    border:1px solid var(--hairline); font-size:12.5px;
-  }
-  .kcard:active{ cursor:grabbing; }
-  .kcard.dragging{ opacity:0.4; }
-  .kcard-name{ font-weight:700; font-size:13px; }
-  .kcard-meta{ color:var(--ink-soft); font-size:11px; margin-top:3px; }
-  .kcard-flags{ margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; }
-  .flag{ font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:10px; }
-  .flag.deposit{ background:rgba(32,201,151,0.15); color:var(--green-deep); }
-  .flag.warn{ background:var(--rust-pale); color:var(--rust); }
+  .board{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;align-items:flex-start}
+  .col{flex:0 0 258px;background:var(--card);border:1px solid var(--hairline);border-radius:14px;display:flex;flex-direction:column}
+  .col-head{padding:13px 14px;border-bottom:1px solid var(--hairline-soft)}
+  .col-head .row{display:flex;align-items:center;gap:7px}
+  .col-head .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+  .col-head .name{font-family:'Poppins',sans-serif;font-size:12.5px;font-weight:600;flex:1}
+  .col-head .cnt{font-size:11.5px;color:var(--ink-soft);font-weight:700}
+  .col-head .val{font-size:11px;color:var(--ink-soft);margin-top:5px}
+  .col-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:70px}
+  .col-body.drag-over{background:rgba(32,201,151,.08)}
+  .kcard{background:var(--panel);border:1px solid var(--hairline-soft);border-radius:10px;padding:11px 12px;cursor:grab}
+  .kcard:hover{border-color:var(--green)}
+  .kcard.dragging{opacity:.4}
+  .kcard .fam{font-weight:700;font-size:13px}
+  .kcard .sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px}
+  .kcard .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+  .tag{font-size:9.5px;font-weight:800;padding:3px 7px;border-radius:20px}
+  .tag.deposit{background:rgba(32,201,151,.16);color:var(--green-deep)}
+  .tag.nodeposit{background:var(--rust-pale);color:var(--rust)}
+  .tag.age{background:var(--hairline-soft);color:var(--ink-soft);font-weight:700}
+  .dropzone{border:1px dashed var(--hairline);border-radius:10px;padding:8px;text-align:center;font-size:11px;color:#9A9488}
 
-  /* List/table */
-  .table-wrap{ background:var(--card); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; }
-  table{ width:100%; border-collapse:collapse; font-size:13px; }
-  th{
-    text-align:left; padding:12px 14px; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;
-    color:var(--ink-soft); border-bottom:1px solid var(--hairline); cursor:pointer; user-select:none; white-space:nowrap;
-  }
-  th:hover{ color:var(--ink); }
-  td{ padding:11px 14px; border-bottom:1px solid var(--hairline); vertical-align:middle; }
-  tr:last-child td{ border-bottom:none; }
-  tr.row-clickable{ cursor:pointer; }
-  tr.row-clickable:hover{ background:var(--cream); }
-  .stage-select{
-    font-family:'Nunito',sans-serif; font-size:11.5px; font-weight:700; padding:5px 9px; border-radius:14px;
-    border:1px solid var(--hairline); background:var(--cream); color:var(--ink);
-  }
-  .empty-state{ padding:50px 0; text-align:center; color:var(--ink-soft); font-size:13px; }
+  /* Families list */
+  .filters-row{display:flex;gap:8px;padding:13px 16px;border-bottom:1px solid var(--hairline-soft);flex-wrap:wrap}
+  .chip{border:1px solid var(--hairline);background:var(--panel);color:var(--ink);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer}
+  .chip.active{background:var(--slate);color:#F3EEE8;border-color:var(--slate)}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
+  th{text-align:left;padding:11px 16px;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--hairline-soft);white-space:nowrap}
+  th.right, td.right{text-align:right}
+  td{padding:12px 16px;border-bottom:1px solid var(--hairline-soft)}
+  tr.rowclick{cursor:pointer}
+  tr.rowclick:hover{background:var(--panel)}
+  .stagepill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px}
 
-  /* Modal */
-  .overlay{
-    position:fixed; inset:0; background:rgba(43,45,55,0.55); z-index:200;
-    display:none; align-items:center; justify-content:center; padding:20px;
-  }
-  .overlay.open{ display:flex; }
-  .modal{
-    background:var(--card); border-radius:16px; width:100%; max-width:520px; max-height:88vh;
-    overflow-y:auto; padding:26px 26px 22px;
-  }
-  .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
-  .modal-title{ font-family:'Poppins',sans-serif; font-weight:700; font-size:18px; }
-  .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer; line-height:1; }
-  .field{ margin-bottom:14px; }
-  .field label{ display:block; font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.3px; }
-  .field input, .field select, .field textarea{
-    width:100%; padding:10px 12px; border-radius:9px; border:1px solid var(--hairline);
-    font-family:'Nunito',sans-serif; font-size:13.5px; background:var(--cream); color:var(--ink);
-  }
-  .field textarea{ resize:vertical; min-height:70px; }
-  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .field-check{ display:flex; align-items:center; gap:8px; }
-  .field-check input{ width:auto; }
-  .modal-actions{ display:flex; gap:10px; margin-top:20px; align-items:center; }
-  .save-status{ font-size:12px; font-weight:600; }
-  .save-status.ok{ color:var(--green-deep); }
-  .save-status.err{ color:var(--rust); }
-  .link-out{ font-size:12px; color:var(--green-deep); text-decoration:none; }
+  /* Workshop */
+  .lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .lane .job{padding:13px 16px;border-bottom:1px solid var(--hairline-soft)}
+  .lane .job:last-child{border-bottom:none}
+  .job-top{display:flex;gap:8px;align-items:baseline}
+  .job-top .fam{font-weight:700;font-size:13px;flex:1}
+  .job-top .due{font-size:11px;font-weight:700}
+  .job .spec{font-size:12px;color:var(--ink-soft);margin-top:4px}
+  .job .prog{display:flex;gap:6px;align-items:center;margin-top:9px}
+  .job .prog .track{flex:1;height:5px;border-radius:5px;background:var(--hairline-soft);overflow:hidden}
+  .job .prog .fill{height:100%;background:var(--green)}
+  .job .owner{font-size:11px;color:var(--ink-soft)}
+  .lane-empty{padding:16px;font-size:12px;color:var(--ink-soft)}
 
-  @media (max-width:700px){
-    .header-mid{ order:3; max-width:none; flex-basis:100%; }
-    .field-row{ grid-template-columns:1fr; }
-  }
+  /* Calendar */
+  .cal-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .cal-legend{font-size:11.5px;color:var(--ink-soft);display:flex;gap:12px;align-items:center;margin-left:auto}
+  .cal-legend .sw{display:flex;gap:5px;align-items:center}
+  .cal-legend .dot{width:8px;height:8px;border-radius:2px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .cal-dayname{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft);padding:0 4px 4px}
+  .cal-cell{min-height:88px;border:1px solid var(--hairline-soft);border-radius:9px;padding:7px 8px;background:var(--card)}
+  .cal-cell.today{background:rgba(32,201,151,.07);border-color:var(--green)}
+  .cal-cell.out{background:transparent;border-color:transparent}
+  .cal-num{font-size:11.5px;font-weight:700}
+  .cal-ev{font-size:10.5px;font-weight:700;line-height:1.3;padding:4px 6px;border-radius:6px;margin-top:4px}
 
-  #gate{
-    position:fixed; inset:0; z-index:999; background:var(--slate);
-    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:18px;
+  /* Conversations */
+  .msg-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:16px;align-items:start}
+  @media (max-width:900px){ .msg-grid{grid-template-columns:1fr} }
+  .thread-row{padding:14px 16px;border-bottom:1px solid var(--hairline-soft);cursor:pointer;border-left:3px solid transparent}
+  .thread-row:hover{background:var(--panel)}
+  .thread-row.active{background:var(--panel);border-left-color:var(--green)}
+  .thread-top{display:flex;gap:8px;align-items:baseline}
+  .thread-top .fam{font-weight:700;font-size:13.5px;flex:1}
+  .thread-top .when{font-size:11px;color:var(--ink-soft)}
+  .thread-prev{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.4}
+  .thread-chan{font-size:10.5px;font-weight:700;color:var(--ink-soft);margin-top:7px;letter-spacing:.4px;text-transform:uppercase}
+  .thread-pane{display:flex;flex-direction:column;overflow:hidden}
+  .thread-pane-head{padding:15px 18px;border-bottom:1px solid var(--hairline-soft)}
+  .thread-pane-body{padding:18px;display:flex;flex-direction:column;gap:10px}
+  .empty-state{padding:40px 20px;text-align:center;color:var(--ink-soft);font-size:13px}
+
+  /* Payments */
+  .invtable td.due-pos{color:var(--rust);font-weight:700}
+  .invtable td.due-zero{color:var(--ink-soft)}
+
+  /* Reports */
+  .rep-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;align-items:start}
+  @media (max-width:980px){ .rep-grid{grid-template-columns:1fr} }
+  .chart-row{display:flex;gap:14px;align-items:flex-end;height:200px;margin-top:22px}
+  .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+  .chart-total{font-size:11px;font-weight:700;color:var(--ink-soft)}
+  .chart-bar{width:100%;max-width:46px;background:var(--hairline-soft);border-radius:6px 6px 0 0;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+  .chart-bar .won{background:var(--green)}
+  .chart-month{font-size:11px;color:var(--ink-soft)}
+  .town-row{margin-bottom:11px}
+  .town-row .row{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600}
+  .town-row .row span:last-child{color:var(--ink-soft)}
+  .town-row .track{height:6px;border-radius:6px;background:var(--hairline-soft);margin-top:5px;overflow:hidden}
+  .town-row .fill{height:100%;background:var(--slate)}
+  .dur-row{display:flex;justify-content:space-between;font-size:12.5px;border-bottom:1px solid var(--hairline-soft);padding-bottom:8px;margin-bottom:10px}
+  .dur-row span:last-child{font-weight:700}
+
+  /* Mobile */
+  .phone-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+  .phone{width:390px;flex:0 0 390px;max-width:100%;background:var(--slate);border-radius:34px;padding:10px;box-shadow:0 20px 50px rgba(43,45,55,.22)}
+  .phone-screen{background:var(--cream);border-radius:26px;overflow:hidden}
+  .phone-head{background:var(--slate);padding:12px 20px 14px;color:#F3EEE8}
+  .phone-statusrow{display:flex;justify-content:space-between;font-size:11px;color:#8E919E}
+  .phone-title-row{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .phone-body{padding:14px}
+  .phone-card{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:13px 14px;margin-bottom:10px}
+  .phone-card .top{display:flex;gap:8px;align-items:baseline}
+  .phone-card .fam{font-weight:700;font-size:13.5px;flex:1}
+  .phone-card .when{font-size:10.5px;font-weight:800}
+  .phone-card .act{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45}
+  .phone-card .btnrow{display:flex;gap:8px;margin-top:11px}
+  .phone-card .btnrow a{flex:1;border:none;font-weight:800;font-size:12px;padding:9px;border-radius:9px;cursor:pointer;text-align:center;display:block}
+  .phone-card .btnrow a.call{background:var(--green);color:#0E2A20}
+  .phone-card .btnrow a.wa{border:1px solid var(--hairline);background:var(--card);color:var(--ink)}
+  .phone-tabs{display:flex;border-top:1px solid var(--hairline);background:var(--card)}
+  .phone-tabs div{flex:1;text-align:center;padding:13px 0 18px;font-size:11px;font-weight:700;color:#9A9488}
+  .phone-tabs div.active{color:var(--green-deep)}
+  .phone-note{display:flex;gap:10px;margin-bottom:12px}
+  .phone-note .dot{width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:7px;flex:0 0 6px}
+
+  /* Settings */
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+  .stage-row{display:flex;align-items:center;gap:10px;border:1px solid var(--hairline-soft);border-radius:9px;padding:9px 12px;background:var(--panel);margin-bottom:7px}
+  .stage-row .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+  .stage-row .name{flex:1;font-size:13px;font-weight:600}
+  .stage-row .cnt{font-size:11px;color:var(--ink-soft)}
+  .price-row{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--hairline-soft);padding-bottom:9px;margin-bottom:10px}
+  .price-row .item{font-size:13px;font-weight:700}
+  .price-row .note{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+  .price-row .amt{font-size:13px;font-weight:700}
+  .town-chip{border:1px solid var(--hairline);background:var(--panel);border-radius:20px;padding:7px 13px;font-size:12px;font-weight:700;display:inline-block;margin:0 8px 8px 0}
+  .toggle-row{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+  .toggle-track{width:36px;height:20px;border-radius:20px;position:relative;flex:0 0 36px;border:none;cursor:pointer;padding:0}
+  .toggle-track .knob{position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+  .toggle-lbl{font-size:12.5px;flex:1}
+
+  /* Drawer */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(43,45,55,.5);z-index:60;display:none;justify-content:flex-end}
+  .drawer-overlay.open{display:flex}
+  .drawer{width:520px;max-width:92vw;background:var(--cream);height:100vh;overflow-y:auto;box-shadow:-20px 0 60px rgba(43,45,55,.2)}
+  .drawer-head{background:var(--slate);color:#F3EEE8;padding:22px 24px}
+  .drawer-head-top{display:flex;align-items:flex-start;gap:12px}
+  .drawer-kicker{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:#8E919E;font-weight:700}
+  .drawer-fam{font-family:'Poppins',sans-serif;font-size:22px;font-weight:600;margin-top:6px}
+  .drawer-sub{font-size:13px;color:#B9BAC4;margin-top:6px}
+  .drawer-close{background:none;border:none;color:#B9BAC4;font-size:22px;cursor:pointer;line-height:1}
+  .drawer-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+  .drawer-actions .a1{border:none;background:var(--green);color:#0E2A20;font-weight:800;font-size:12.5px;padding:9px 15px;border-radius:9px;cursor:pointer}
+  .drawer-actions .a2{border:1px solid rgba(255,255,255,.25);background:none;color:#F3EEE8;font-weight:700;font-size:12.5px;padding:9px 15px;border-radius:9px;cursor:pointer}
+  .drawer-body{padding:20px 24px 40px;display:flex;flex-direction:column;gap:16px}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field-grid .lbl{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+  .field-grid .val{font-size:13.5px;font-weight:600;margin-top:4px}
+  .timeline-item{display:flex;gap:12px;padding-bottom:14px}
+  .timeline-dotcol{display:flex;flex-direction:column;align-items:center;flex:0 0 10px}
+  .timeline-dot{width:9px;height:9px;border-radius:50%;margin-top:4px}
+  .timeline-line{flex:1;width:1px;background:var(--hairline-soft);margin-top:4px}
+  .timeline-title{font-size:13px;font-weight:700}
+  .timeline-body{font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+  .timeline-when{font-size:11px;color:#9A9488;margin-top:4px}
+  .notes-text{font-size:13px;color:var(--ink);line-height:1.6;margin-top:8px;white-space:pre-wrap}
+  .notes-area{width:100%;margin-top:12px;min-height:76px;border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:13px;background:var(--panel);resize:vertical}
+  .save-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+  .save-status{font-size:12px;font-weight:600}
+  .save-status.ok{color:var(--green-deep)}
+  .save-status.err{color:var(--rust)}
+  select.stage-select{font-family:'Nunito',sans-serif;font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:9px;border:1px solid var(--hairline);background:var(--card);color:var(--ink)}
+
+  /* Add family modal */
+  .overlay{position:fixed;inset:0;background:rgba(43,45,55,.55);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+  .overlay.open{display:flex}
+  .modal{background:var(--card);border-radius:16px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:24px 24px 20px}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+  .modal-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:17px}
+  .modal-close{background:none;border:none;font-size:20px;color:var(--ink-soft);cursor:pointer}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--hairline);font-size:13.5px;background:var(--panel);color:var(--ink)}
+  .field textarea{resize:vertical;min-height:64px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-actions{display:flex;gap:10px;align-items:center;margin-top:16px}
+
+  @media (max-width:860px){
+    .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s;z-index:80}
+    .sidebar.open{transform:translateX(0)}
+    .app.open{display:block}
+    .topbar{flex-wrap:wrap}
+    .field-row{grid-template-columns:1fr}
   }
-  #gate .gate-title{ font-family:'Poppins', sans-serif; color:#F3EEE8; font-size:20px; font-weight:700; }
-  #gate .gate-title span{ color:var(--green); }
-  #gate form{ display:flex; flex-direction:column; gap:12px; width:260px; }
-  #gate input{
-    padding:12px 14px; border-radius:9px; border:1px solid rgba(255,255,255,0.2);
-    background:rgba(255,255,255,0.06); color:#F3EEE8; font-family:'Nunito',sans-serif; font-size:14px;
-  }
-  #gate input::placeholder{ color:#9A9CA8; }
-  #gate button{
-    padding:12px 14px; border-radius:9px; border:none; background:var(--green); color:#12241D;
-    font-weight:800; font-size:13.5px; cursor:pointer; font-family:'Nunito',sans-serif;
-  }
-  #gate button:hover{ background:var(--green-deep); color:#fff; }
-  #gate .gate-error{ color:#E6A79A; font-size:12px; text-align:center; min-height:16px; }
-  .shell{ display:none; }
 </style>
 </head>
 <body>
+
 <div id="gate">
-  <div class="gate-title">exhale <span>CRM</span></div>
+  <div class="brand-logo">
+    <span class="brand-word">exhale<svg class="brand-arrow" viewBox="0 0 40 40" fill="none"><path d="M20 6h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/><path d="M8 18h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/></svg></span>
+    <span class="brand-dot">.memorials</span>
+  </div>
+  <div class="gate-title">CRM</div>
   <form id="gateForm">
     <input type="password" id="gatePassword" placeholder="Enter password" autofocus>
     <button type="submit">Unlock</button>
     <div class="gate-error" id="gateError"></div>
   </form>
 </div>
-<div class="shell">
-  <header>
-    <div class="brand">
-      <span class="brand-word">exhale <span style="color:var(--green)">CRM</span></span>
-      <a class="back-link" href="index.html">← Front Desk</a>
-    </div>
-    <div class="header-mid">
-      <input class="search-input" id="searchInput" placeholder="Search name or phone…">
-    </div>
-    <div class="header-right">
-      <div class="view-toggle">
-        <button id="viewKanbanBtn" class="active">Kanban</button>
-        <button id="viewListBtn">List</button>
-      </div>
-      <button class="btn btn-ghost" id="refreshBtn">Refresh</button>
-      <button class="btn btn-primary" id="addBtn">+ Add Enquiry</button>
-    </div>
-  </header>
 
-  <main>
-    <div class="error-banner" id="errorBanner"></div>
-    <div id="boardView" class="board"></div>
-    <div id="listView" class="table-wrap" style="display:none;">
-      <table>
-        <thead>
-          <tr>
-            <th data-sort="name">Name</th>
-            <th data-sort="interest">Interest</th>
-            <th data-sort="town">Town</th>
-            <th data-sort="status">Stage</th>
-            <th data-sort="deposit_paid">Deposit</th>
-            <th data-sort="submitted_at">Submitted</th>
-          </tr>
-        </thead>
-        <tbody id="listBody"></tbody>
-      </table>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand-row">
+      <div class="brand-logo">
+        <span class="brand-word">exhale<svg class="brand-arrow" viewBox="0 0 40 40" fill="none"><path d="M20 6h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/><path d="M8 18h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/></svg></span>
+        <span class="brand-dot">memorials</span>
+      </div>
     </div>
-  </main>
-</div>
+    <nav class="navlist" id="navList"></nav>
+    <div class="sidebar-foot">
+      <div class="avatar" id="avatarInitials">·</div>
+      <div style="flex:1;min-width:0">
+        <div class="who">Front desk</div>
+        <div class="where">All towns</div>
+      </div>
+      <button class="theme-toggle" id="themeToggleBtn" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+    </div>
+  </aside>
 
-<!-- Detail / edit modal -->
-<div class="overlay" id="detailOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <div class="modal-title" id="detailTitle">Enquiry</div>
-      <button class="modal-close" id="detailClose">×</button>
-    </div>
-    <div class="field"><label>Name</label><input id="fName"></div>
-    <div class="field-row">
-      <div class="field"><label>Phone</label><input id="fPhone"></div>
-      <div class="field"><label>Email</label><input id="fEmail"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Interested In</label>
-        <select id="fInterest">
-          <option>Tombstones</option><option>Plaques</option><option>Grave Restorations</option>
-          <option>Memorial Books</option><option>Not sure yet</option>
-        </select>
+  <div class="main">
+    <header class="topbar">
+      <div class="titles">
+        <h1 id="screenTitle">Today</h1>
+        <div class="sub" id="screenSub"></div>
       </div>
-      <div class="field"><label>Town</label>
-        <select id="fTown">
-          <option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option>
-          <option>Flagstaff</option><option>Other</option>
-        </select>
+      <div class="actions">
+        <input class="searchbox" id="searchInput" placeholder="Search a family, phone or town…">
+        <a class="btn-ghost" href="index.html">Front Desk</a>
+        <button class="btn-accent" id="newFamilyBtn">+ New family</button>
       </div>
-    </div>
-    <div class="field"><label>Stage</label>
-      <select id="fStatus">
-        <option>Lead</option><option>Design Selection</option><option>Quotation</option>
-        <option>Deposit Confirmed</option><option>Artwork</option><option>Artwork Approval</option>
-        <option>Manufacturing</option><option>Ready to Install</option><option>Installation</option>
-        <option>After-Installation Service</option><option>Lost</option>
-      </select>
-    </div>
-    <div class="field-row">
-      <div class="field field-check"><input type="checkbox" id="fDepositPaid"><label style="margin:0;">Deposit Paid</label></div>
-      <div class="field"><label>Deposit Date</label><input type="date" id="fDepositDate"></div>
-    </div>
-    <div class="field"><label>Installed Date</label><input type="date" id="fInstalledDate"></div>
-    <div class="field"><label>Original Message</label><textarea id="fMessage" readonly style="opacity:0.75;"></textarea></div>
-    <div class="field"><label>Notes</label><textarea id="fNotes" placeholder="Running notes on this enquiry…"></textarea></div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" id="saveBtn">Save changes</button>
-      <span class="save-status" id="saveStatus"></span>
-      <a class="link-out" id="notionLink" href="#" target="_blank" style="margin-left:auto;">Open in Notion →</a>
+    </header>
+
+    <div class="content">
+      <div class="error-banner" id="errorBanner"></div>
+      <section class="screen" id="screen-dash"></section>
+      <section class="screen" id="screen-pipeline"></section>
+      <section class="screen" id="screen-list"></section>
+      <section class="screen" id="screen-production"></section>
+      <section class="screen" id="screen-calendar"></section>
+      <section class="screen" id="screen-messages"></section>
+      <section class="screen" id="screen-invoices"></section>
+      <section class="screen" id="screen-reports"></section>
+      <section class="screen" id="screen-mobile"></section>
+      <section class="screen" id="screen-settings"></section>
     </div>
   </div>
 </div>
 
-<!-- Add new enquiry modal -->
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer" id="drawer"></div>
+</div>
+
 <div class="overlay" id="addOverlay">
   <div class="modal">
     <div class="modal-head">
-      <div class="modal-title">Add Enquiry</div>
+      <div class="modal-title">New family</div>
       <button class="modal-close" id="addClose">×</button>
     </div>
     <div class="field"><label>Name *</label><input id="aName"></div>
@@ -266,29 +395,25 @@
       <div class="field"><label>Email</label><input id="aEmail"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Interested In</label>
-        <select id="aInterest">
-          <option>Tombstones</option><option>Plaques</option><option>Grave Restorations</option>
-          <option>Memorial Books</option><option>Not sure yet</option>
-        </select>
+      <div class="field"><label>Interested in</label>
+        <select id="aInterest"><option>Tombstones</option><option>Plaques</option><option>Grave Restorations</option><option>Memorial Books</option><option>Not sure yet</option></select>
       </div>
       <div class="field"><label>Town</label>
-        <select id="aTown">
-          <option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option>
-          <option>Flagstaff</option><option>Other</option>
-        </select>
+        <select id="aTown"><option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option><option>Flagstaff</option><option>Other</option></select>
       </div>
     </div>
-    <div class="field"><label>Message / Notes</label><textarea id="aMessage" placeholder="What are they after?"></textarea></div>
+    <div class="field"><label>Message / notes</label><textarea id="aMessage" placeholder="What are they after?"></textarea></div>
     <div class="modal-actions">
-      <button class="btn btn-primary" id="addSaveBtn">Add enquiry</button>
+      <button class="btn-accent" id="addSaveBtn">Add family</button>
       <span class="save-status" id="addStatus"></span>
     </div>
   </div>
 </div>
 
 <script>
-// --- Password gate (shared with Front Desk via sessionStorage) ---
+"use strict";
+
+/* ---------- Gate (shared with Front Desk) ---------- */
 const GATE_HASH = "6dc6da2a4d2f76400701a5c58c07d795098208a2b904f899ec76a024e55f8718";
 async function sha256(text){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -296,12 +421,11 @@ async function sha256(text){
 }
 function showApp(){
   document.getElementById("gate").style.display = "none";
-  document.querySelector(".shell").style.display = "flex";
+  document.getElementById("app").classList.add("open");
+  boot();
 }
-if(sessionStorage.getItem("exhale_desk_unlocked") === "1"){
-  showApp();
-}
-document.getElementById("gateForm").addEventListener("submit", async (e) => {
+if(sessionStorage.getItem("exhale_desk_unlocked") === "1") showApp();
+document.getElementById("gateForm").addEventListener("submit", async e => {
   e.preventDefault();
   const val = document.getElementById("gatePassword").value;
   const hash = await sha256(val);
@@ -313,168 +437,175 @@ document.getElementById("gateForm").addEventListener("submit", async (e) => {
     document.getElementById("gatePassword").value = "";
   }
 });
+
+/* ---------- Theme (shared with Front Desk) ---------- */
+function applyTheme(t){ document.documentElement.setAttribute("data-theme", t); }
+applyTheme(localStorage.getItem("exhale_desk_theme") || "light");
+document.getElementById("themeToggleBtn").addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  localStorage.setItem("exhale_desk_theme", next);
+  applyTheme(next);
+});
+
+/* ---------- Constants ---------- */
 const STAGES = ["Lead","Design Selection","Quotation","Deposit Confirmed","Artwork","Artwork Approval","Manufacturing","Ready to Install","Installation","After-Installation Service","Lost"];
+const STAGE_COLOR = {
+  "Lead":"#8E919E","Design Selection":"#7FA8C9","Quotation":"#C98A20","Deposit Confirmed":"#20C997",
+  "Artwork":"#5B8CC9","Artwork Approval":"#9B7FC9","Manufacturing":"#128267","Ready to Install":"#2B2D37",
+  "Installation":"#20C997","After-Installation Service":"#6B6F7B","Lost":"#B5493A"
+};
+const TOWNS = ["Lusikisiki","Port St Johns","Flagstaff","Other"];
+const INTERESTS = ["Tombstones","Plaques","Grave Restorations","Memorial Books","Not sure yet"];
+const NAV = [
+  { key:"dash", label:"Today", icon:'<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>' },
+  { key:"pipeline", label:"Pipeline", icon:'<rect x="3" y="4" width="5" height="16" rx="1"></rect><rect x="10" y="4" width="5" height="11" rx="1"></rect><rect x="17" y="4" width="4" height="7" rx="1"></rect>', badge:true },
+  { key:"list", label:"Families", icon:'<path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="3.2"></circle><path d="M22 20v-2a4 4 0 0 0-3-3.8"></path><path d="M16 4.2a3.2 3.2 0 0 1 0 5.6"></path>' },
+  { key:"production", label:"Workshop", icon:'<path d="M14.6 3.4a2 2 0 0 1 2.8 0l3.2 3.2a2 2 0 0 1 0 2.8l-2.1 2.1-6-6z"></path><path d="M12.5 5.5 4 14v6h6l8.5-8.5"></path>' },
+  { key:"calendar", label:"Calendar", icon:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path>' },
+  { key:"messages", label:"Conversations", icon:'<path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"></path>' },
+  { key:"invoices", label:"Payments", icon:'<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17l-3-2-3 2-3-2z"></path><path d="M9 7h6M9 11h6M9 15h3"></path>' },
+  { key:"reports", label:"Reports", icon:'<path d="M3 20h18"></path><path d="M6 20v-7M11 20V7M16 20v-10M21 20V4"></path>' },
+  { key:"mobile", label:"On the road", icon:'<rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18.5h2"></path>' },
+  { key:"settings", label:"Settings", icon:'<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.3-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.6 1z"></path>' }
+];
 
-let allEnquiries = [];
-let currentView = "kanban";
-let sortKey = "submitted_at";
-let sortDir = "desc";
-let selectedId = null;
+/* ---------- State ---------- */
+const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"" };
 
-function timeAgo(iso){
-  if(!iso) return "—";
-  const diff = (Date.now() - new Date(iso).getTime())/1000;
-  if(diff < 60) return "just now";
-  if(diff < 3600) return Math.floor(diff/60) + "m ago";
-  if(diff < 86400) return Math.floor(diff/3600) + "h ago";
-  return Math.floor(diff/86400) + "d ago";
+/* ---------- Helpers ---------- */
+function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function ZAR(n){ return "R" + Math.round(n||0).toLocaleString("en-ZA").replace(/,/g," "); }
+function digits(phone){ return (phone||"").replace(/[^\d+]/g,""); }
+function toE164(raw){
+  const c = digits(raw);
+  if(/^\+27\d{9}$/.test(c)) return c;
+  if(/^27\d{9}$/.test(c)) return "+" + c;
+  if(/^0\d{9}$/.test(c)) return "+27" + c.slice(1);
+  return c;
 }
-function esc(s){
-  return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function familyName(name){
+  const parts = (name||"").trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return "Unknown family";
+  return parts[parts.length-1] + " family";
+}
+function initials(name){
+  const parts = (name||"").trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return "··";
+  return (parts[0][0] + (parts[1]?parts[1][0]:parts[0][1]||"")).toUpperCase();
+}
+function daysSince(iso){
+  if(!iso) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+}
+function ageShort(iso){
+  if(!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  const h = ms / 3600000;
+  if(h < 1) return "just now";
+  if(h < 24) return Math.round(h) + "h";
+  return Math.round(h/24) + "d";
+}
+function parseLooseDate(str){
+  if(!str) return null;
+  const cleaned = str.split("·").pop().trim();
+  const d = new Date(cleaned);
+  if(!isNaN(d.getTime())) return d;
+  const monthYear = cleaned.match(/^([A-Za-z]{3,9})\s+(\d{4})$/);
+  if(monthYear){
+    const d2 = new Date(monthYear[1] + " 1, " + monthYear[2]);
+    if(!isNaN(d2.getTime())) return d2;
+  }
+  return null;
+}
+function fmtDate(d){
+  return d.toLocaleDateString("en-ZA", { day:"numeric", month:"short", year:"numeric" });
+}
+function plural(n, word){ return n + " " + word + (n === 1 ? "" : "s"); }
+
+/* ---------- Data loading ---------- */
+function normalize(e){
+  const submitted = e.submitted_at;
+  const c = {
+    id: e.id,
+    url: e.url,
+    contact: e.name || "Unknown",
+    family: familyName(e.name),
+    initials: initials(e.name),
+    phone: e.phone || "",
+    email: e.email || "",
+    interest: e.interest || "Not sure yet",
+    town: e.town || "",
+    stage: STAGES.includes(e.status) ? e.status : "Lead",
+    message: e.message || "",
+    notes: e.notes || "",
+    landmark: e.landmark || "",
+    siteAccess: e.site_access || "",
+    unveiling: e.unveiling || "",
+    phoneValid: !!e.phone_valid,
+    deposit: !!e.deposit_paid,
+    depositDate: e.deposit_date || "",
+    installedDate: e.installed_date || "",
+    inMemoryOf: e.in_memory_of || "",
+    value: Number(e.quoted_value) || 0,
+    paid: Number(e.amount_paid) || 0,
+    paymentPlan: e.payment_plan || "",
+    progress: Math.max(0, Math.min(100, Number(e.production_progress) || 0)),
+    assignedTo: e.assigned_to || "",
+    submittedAt: submitted,
+    updatedAt: e.updated_at || submitted,
+    days: daysSince(submitted) || 0,
+    age: ageShort(e.updated_at || submitted)
+  };
+  return c;
+}
+
+async function loadCases(){
+  const resp = await fetch("/.netlify/functions/notion-enquiries");
+  if(!resp.ok) throw new Error("Function error " + resp.status);
+  const parsed = await resp.json();
+  if(!parsed || !parsed.enquiries) throw new Error("Could not parse response");
+  state.cases = parsed.enquiries.map(normalize);
+}
+
+async function loadConversations(){
+  try{
+    const resp = await fetch("/.netlify/functions/peach-data");
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || "Peach error " + resp.status);
+    const list = Array.isArray(data) ? data : (data.conversations || data.data || data.results || []);
+    state.conversations = list.map(c => ({
+      id: c.conversation_id || c.id,
+      name: (c.contact && (c.contact.name || c.contact.full_name)) || c.name || c.phone_number || "Unknown",
+      phone: (c.contact && c.contact.phone_number) || c.phone_number || "",
+      status: c.status || "open",
+      escalated: !!c.escalated,
+      updatedAt: c.updated_at || c.last_message_at || c.updated_since || null,
+      preview: (c.last_message && (c.last_message.text || c.last_message.body)) || c.preview || ""
+    }));
+    state.convError = "";
+  }catch(err){
+    state.conversations = [];
+    state.convError = err.message;
+  }
 }
 
 async function loadAll(){
   const banner = document.getElementById("errorBanner");
-  banner.style.display = "none";
+  banner.classList.remove("show");
   try{
-    const resp = await fetch("/.netlify/functions/notion-enquiries");
-    if(!resp.ok) throw new Error("Function error " + resp.status);
-    const parsed = await resp.json();
-    if(!parsed || !parsed.enquiries) throw new Error("Could not parse response");
-    allEnquiries = parsed.enquiries;
-    render();
+    await loadCases();
   }catch(err){
-    banner.textContent = "Couldn't load enquiries (" + err.message + ").";
-    banner.style.display = "block";
+    banner.textContent = "Couldn't load families (" + err.message + ").";
+    banner.classList.add("show");
   }
+  await loadConversations();
+  render();
 }
 
-function filtered(){
-  const q = document.getElementById("searchInput").value.trim().toLowerCase();
-  if(!q) return allEnquiries;
-  return allEnquiries.filter(e =>
-    (e.name||"").toLowerCase().includes(q) || (e.phone||"").toLowerCase().includes(q)
-  );
-}
-
-function render(){
-  if(currentView === "kanban") renderKanban(); else renderList();
-}
-
-function renderKanban(){
-  const list = filtered();
-  const board = document.getElementById("boardView");
-  board.innerHTML = STAGES.map(stage => {
-    const cards = list.filter(e => e.status === stage);
-    return `<div class="col">
-      <div class="col-head">
-        <div class="col-title">${stage}</div>
-        <div class="col-count">${cards.length}</div>
-      </div>
-      <div class="col-body" data-stage="${esc(stage)}">
-        ${cards.map(e => cardHtml(e)).join("")}
-      </div>
-    </div>`;
-  }).join("");
-
-  // Drag and drop wiring
-  board.querySelectorAll(".kcard").forEach(el => {
-    el.addEventListener("dragstart", e => {
-      el.classList.add("dragging");
-      e.dataTransfer.setData("text/plain", el.dataset.id);
-    });
-    el.addEventListener("dragend", () => el.classList.remove("dragging"));
-    el.addEventListener("click", () => openDetail(el.dataset.id));
-  });
-  board.querySelectorAll(".col-body").forEach(col => {
-    col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drag-over"); });
-    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
-    col.addEventListener("drop", async e => {
-      e.preventDefault();
-      col.classList.remove("drag-over");
-      const id = e.dataTransfer.getData("text/plain");
-      const newStage = col.dataset.stage;
-      const enquiry = allEnquiries.find(x => x.id === id);
-      if(!enquiry || enquiry.status === newStage) return;
-      const prevStage = enquiry.status;
-      enquiry.status = newStage;
-      render();
-      try{
-        await updateEnquiry(id, { status: newStage });
-      }catch(err){
-        enquiry.status = prevStage;
-        render();
-        alert("Couldn't move that card — try again.");
-      }
-    });
-  });
-}
-
-function cardHtml(e){
-  return `<div class="kcard" draggable="true" data-id="${e.id}">
-    <div class="kcard-name">${esc(e.name)}${!e.phone_valid ? " ⚠️" : ""}</div>
-    <div class="kcard-meta">${[esc(e.interest), esc(e.town)].filter(Boolean).join(" · ")}</div>
-    <div class="kcard-meta">${timeAgo(e.submitted_at)}</div>
-    <div class="kcard-flags">
-      ${e.deposit_paid ? '<span class="flag deposit">Deposit paid</span>' : ""}
-      ${!e.phone_valid ? '<span class="flag warn">Check phone</span>' : ""}
-    </div>
-  </div>`;
-}
-
-function renderList(){
-  let list = filtered();
-  list = [...list].sort((a,b) => {
-    let av = a[sortKey], bv = b[sortKey];
-    if(sortKey === "submitted_at"){ av = new Date(av||0).getTime(); bv = new Date(bv||0).getTime(); }
-    if(av === bv) return 0;
-    const dir = sortDir === "asc" ? 1 : -1;
-    return av > bv ? dir : -dir;
-  });
-  const body = document.getElementById("listBody");
-  if(!list.length){
-    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">No enquiries match</div></td></tr>`;
-    return;
-  }
-  body.innerHTML = list.map(e => `
-    <tr>
-      <td class="row-clickable" data-id="${e.id}">${esc(e.name)}${!e.phone_valid ? " ⚠️" : ""}</td>
-      <td class="row-clickable" data-id="${e.id}">${esc(e.interest)}</td>
-      <td class="row-clickable" data-id="${e.id}">${esc(e.town) || "—"}</td>
-      <td>
-        <select class="stage-select" data-id="${e.id}">
-          ${STAGES.map(s => `<option ${s===e.status?"selected":""}>${s}</option>`).join("")}
-        </select>
-      </td>
-      <td class="row-clickable" data-id="${e.id}">${e.deposit_paid ? "✅" : "—"}</td>
-      <td class="row-clickable" data-id="${e.id}">${timeAgo(e.submitted_at)}</td>
-    </tr>
-  `).join("");
-
-  body.querySelectorAll(".row-clickable").forEach(td => {
-    td.addEventListener("click", () => openDetail(td.dataset.id));
-  });
-  body.querySelectorAll(".stage-select").forEach(sel => {
-    sel.addEventListener("change", async () => {
-      const id = sel.dataset.id;
-      const enquiry = allEnquiries.find(x => x.id === id);
-      const prev = enquiry.status;
-      enquiry.status = sel.value;
-      try{
-        await updateEnquiry(id, { status: sel.value });
-      }catch(err){
-        enquiry.status = prev;
-        sel.value = prev;
-        alert("Couldn't update that stage — try again.");
-      }
-    });
-  });
-}
-
-async function updateEnquiry(id, patch){
+/* ---------- Writes ---------- */
+async function updateCase(id, patch){
   const res = await fetch("/.netlify/functions/crm-update", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({ id, ...patch })
   });
   const data = await res.json();
@@ -482,91 +613,634 @@ async function updateEnquiry(id, patch){
   return data;
 }
 
-function openDetail(id){
-  const e = allEnquiries.find(x => x.id === id);
-  if(!e) return;
-  selectedId = id;
-  document.getElementById("detailTitle").textContent = e.name;
-  document.getElementById("fName").value = e.name || "";
-  document.getElementById("fPhone").value = e.phone || "";
-  document.getElementById("fEmail").value = e.email || "";
-  document.getElementById("fInterest").value = e.interest || "Not sure yet";
-  document.getElementById("fTown").value = e.town || "";
-  document.getElementById("fStatus").value = e.status || "Lead";
-  document.getElementById("fDepositPaid").checked = !!e.deposit_paid;
-  document.getElementById("fDepositDate").value = (e.deposit_date||"").slice(0,10);
-  document.getElementById("fInstalledDate").value = (e.installed_date||"").slice(0,10);
-  document.getElementById("fMessage").value = e.message || "(none)";
-  document.getElementById("fNotes").value = e.notes || "";
-  document.getElementById("notionLink").href = e.url || "#";
-  document.getElementById("saveStatus").textContent = "";
-  document.getElementById("detailOverlay").classList.add("open");
+/* ---------- Derived data ---------- */
+function liveCases(){ return state.cases.filter(c => c.stage !== "Lost"); }
+function stageCount(st){ return state.cases.filter(c => c.stage === st).length; }
+
+function searchFiltered(list){
+  const q = state.query.trim().toLowerCase();
+  if(!q) return list;
+  return list.filter(c => (c.family + c.contact + c.phone + c.town + c.inMemoryOf).toLowerCase().includes(q));
 }
 
-document.getElementById("detailClose").addEventListener("click", () => {
-  document.getElementById("detailOverlay").classList.remove("open");
-});
-document.getElementById("detailOverlay").addEventListener("click", e => {
-  if(e.target.id === "detailOverlay") document.getElementById("detailOverlay").classList.remove("open");
-});
+function attentionList(){
+  const items = [];
+  liveCases().forEach(c => {
+    let reason = null, score = 0, when = "", color = "#128267";
+    if(c.stage === "Lead"){
+      if(!c.phoneValid){ reason = "Phone number looks off — try the email instead."; score = 95; when = "First"; color = "#B5493A"; }
+      else { reason = "Nobody has called " + c.contact.split(" ")[0] + " yet — " + c.interest.toLowerCase() + " enquiry, " + ageShort(c.submittedAt) + " old."; score = 90; when = "First"; color = "#B5493A"; }
+    } else if(["Quotation","Design Selection"].includes(c.stage) && c.days >= 5){
+      reason = "Quote has been sitting " + c.days + " days — worth a follow-up call."; score = 70; when = "Today"; color = "#C98A20";
+    } else if(c.stage === "Deposit Confirmed" && !c.deposit){
+      reason = "Marked Deposit Confirmed but no deposit is recorded — check Peach."; score = 68; when = "Today"; color = "#C98A20";
+    } else if(["Quotation"].includes(c.stage) && !c.deposit && c.days >= 2){
+      reason = "Quoted, no deposit yet — a gentle nudge could help."; score = 55; when = "This week"; color = "#128267";
+    }
+    const installed = parseLooseDate(c.installedDate);
+    if(installed){
+      const diffDays = Math.round((installed - Date.now()) / 86400000);
+      if(diffDays >= 0 && diffDays <= 5){
+        items.push({ c, reason: "Install is " + (diffDays === 0 ? "today" : diffDays === 1 ? "tomorrow" : "in " + diffDays + " days") + " — confirm the crew and materials.", score: 92, when: diffDays === 0 ? "Today" : fmtDate(installed), color:"#C98A20" });
+      }
+    }
+    const unveil = parseLooseDate(c.unveiling);
+    if(unveil){
+      const diffDays = Math.round((unveil - Date.now()) / 86400000);
+      if(diffDays >= 0 && diffDays <= 10){
+        items.push({ c, reason: "Unveiling " + (diffDays === 0 ? "is today" : "in " + diffDays + " days") + " — hold the date for the family.", score: 88, when: fmtDate(unveil), color:"#128267" });
+      }
+    }
+    if(reason) items.push({ c, reason, score, when, color });
+  });
+  items.sort((a,b) => b.score - a.score);
+  const seen = new Set(); const out = [];
+  for(const it of items){ if(seen.has(it.c.id)) continue; seen.add(it.c.id); out.push(it); if(out.length >= 8) break; }
+  return out;
+}
 
-document.getElementById("saveBtn").addEventListener("click", async () => {
-  const statusEl = document.getElementById("saveStatus");
-  statusEl.textContent = "Saving…";
-  statusEl.className = "save-status";
-  const patch = {
-    name: document.getElementById("fName").value.trim(),
-    phone: document.getElementById("fPhone").value.trim(),
-    email: document.getElementById("fEmail").value.trim(),
-    interest: document.getElementById("fInterest").value,
-    town: document.getElementById("fTown").value,
-    status: document.getElementById("fStatus").value,
-    deposit_paid: document.getElementById("fDepositPaid").checked,
-    deposit_date: document.getElementById("fDepositDate").value,
-    installed_date: document.getElementById("fInstalledDate").value,
-    notes: document.getElementById("fNotes").value
-  };
-  try{
-    await updateEnquiry(selectedId, patch);
-    Object.assign(allEnquiries.find(x => x.id === selectedId), patch);
-    statusEl.textContent = "Saved ✓";
-    statusEl.className = "save-status ok";
-    render();
-  }catch(err){
-    statusEl.textContent = "Couldn't save: " + err.message;
-    statusEl.className = "save-status err";
+/* ---------- Sidebar / header render ---------- */
+function renderNav(){
+  const nav = document.getElementById("navList");
+  nav.innerHTML = NAV.map(item => {
+    const active = state.screen === item.key;
+    let badge = "";
+    if(item.badge) badge = '<span class="badge">' + liveCases().length + '</span>';
+    if(item.key === "messages"){
+      const n = state.conversations.filter(c=>c.status==="open").length;
+      badge = n ? '<span class="badge">' + n + '</span>' : "";
+    }
+    return '<button class="navbtn' + (active?" active":"") + '" data-nav="' + item.key + '">' +
+      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + item.icon + '</svg>' +
+      '<span class="lbl">' + item.label + '</span>' + badge + '</button>';
+  }).join("");
+  nav.querySelectorAll("[data-nav]").forEach(btn => {
+    btn.addEventListener("click", () => { state.screen = btn.dataset.nav; render(); });
+  });
+}
+
+const TITLES = {
+  dash: () => ["Today", plural(attentionList().length, "family") + " need something from us today"],
+  pipeline: () => ["Pipeline", "Every family, from first call to the year after"],
+  list: () => ["Families", state.cases.length + " records · " + liveCases().length + " open"],
+  production: () => ["Workshop", "Artwork, cutting, binding and the road"],
+  calendar: () => ["Calendar", new Date().toLocaleDateString("en-ZA",{month:"long",year:"numeric"})],
+  messages: () => ["Conversations", "WhatsApp threads escalated from the bot"],
+  invoices: () => ["Payments", "Quoted value, deposits and what's outstanding"],
+  reports: () => ["Reports", "How enquiries move through the pipeline"],
+  mobile: () => ["On the road", "What the phone shows at a graveside"],
+  settings: () => ["Settings", "Stages, prices, towns and reminders"]
+};
+
+function renderHeader(){
+  const [title, sub] = TITLES[state.screen]();
+  document.getElementById("screenTitle").textContent = title;
+  document.getElementById("screenSub").textContent = sub;
+  document.getElementById("avatarInitials").textContent = "FD";
+}
+
+/* ---------- Screen: Today ---------- */
+function renderDash(){
+  const el = document.getElementById("screen-dash");
+  const live = liveCases();
+  const today = attentionList();
+  const maxCount = Math.max(1, ...STAGES.filter(s=>s!=="Lost").map(stageCount));
+  const stageBars = STAGES.filter(s => s !== "Lost" && stageCount(s) > 0).map(s => ({
+    stage:s, count:stageCount(s), color:STAGE_COLOR[s], width: Math.round((stageCount(s)/maxCount)*100)
+  }));
+
+  const upcoming = live
+    .map(c => ({ c, d: parseLooseDate(c.unveiling) }))
+    .filter(x => x.d && x.d.getTime() >= Date.now() - 86400000)
+    .sort((a,b) => a.d - b.d)[0];
+
+  el.innerHTML =
+    '<div class="stat-grid">' +
+      statCard("Families open", String(live.length), "across " + (new Set(live.map(c=>c.town).filter(Boolean)).size || 0) + " towns") +
+      statCard("Work in hand", ZAR(live.reduce((a,c)=>a+c.value,0)), "quoted and accepted") +
+      statCard("Awaiting deposit", String(live.filter(c=>!c.deposit).length), live.filter(c=>!c.deposit).length ? "oldest is " + Math.max(...live.filter(c=>!c.deposit).map(c=>c.days),0) + " days" : "all caught up") +
+      statCard("Installs this month", String(live.filter(c=>{ const d=parseLooseDate(c.installedDate); return d && d.getMonth()===new Date().getMonth() && d.getFullYear()===new Date().getFullYear(); }).length), "this calendar month") +
+    '</div>' +
+    '<div class="dash-grid">' +
+      '<section class="panel">' +
+        '<div class="panel-head"><h2 class="h2">Needs you today</h2><span class="count">' + plural(today.length, "family") + ' waiting on us</span></div>' +
+        (today.length ? today.map(t =>
+          '<div class="today-row" data-open="' + t.c.id + '">' +
+            '<div class="bar" style="background:' + t.color + '"></div>' +
+            '<div style="flex:1;min-width:0"><div class="fam">' + esc(t.c.family) + '</div><div class="act">' + esc(t.reason) + '</div></div>' +
+            '<div><div class="when" style="color:' + t.color + '">' + esc(t.when) + '</div><div class="stg">' + esc(t.c.stage) + '</div></div>' +
+          '</div>'
+        ).join("") : '<div class="empty-state">Nothing needs attention right now.</div>') +
+        '<div class="panel-foot">Cleared by hand, not by a robot.</div>' +
+      '</section>' +
+      '<div style="display:flex;flex-direction:column;gap:16px">' +
+        '<section class="panel" style="padding:16px 18px">' +
+          '<h2 class="h2" style="font-size:15px">Where everyone is</h2>' +
+          '<div style="margin-top:14px">' +
+          (stageBars.length ? stageBars.map(b =>
+            '<div class="stagebar" data-open-pipeline="1"><div class="row"><span>' + esc(b.stage) + '</span><span>' + b.count + '</span></div>' +
+            '<div class="track"><div class="fill" style="background:' + b.color + ';width:' + b.width + '%"></div></div></div>'
+          ).join("") : '<div class="empty-state">No open families yet.</div>') +
+          '</div>' +
+        '</section>' +
+        '<div class="unveil-card">' +
+          '<div class="kicker">Coming up</div>' +
+          (upcoming ?
+            '<div class="name">' + esc(upcoming.c.family) + ' · ' + fmtDate(upcoming.d) + '</div>' +
+            '<div class="meta">' + esc(upcoming.c.town || "") + (upcoming.c.landmark ? " · " + esc(upcoming.c.landmark) : "") + '</div>' +
+            '<div class="rule"></div><div class="note">Install must land at least a few days before the family gathers.</div>'
+            : '<div class="name">Nothing scheduled yet</div><div class="meta">Unveiling dates will show up here once they\'re recorded.</div>') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+  el.querySelectorAll("[data-open-pipeline]").forEach(row => row.addEventListener("click", () => { state.screen = "pipeline"; render(); }));
+}
+function statCard(lbl,val,note){
+  return '<div class="stat-card"><div class="lbl">' + esc(lbl) + '</div><div class="val">' + esc(val) + '</div><div class="note">' + esc(note) + '</div></div>';
+}
+
+/* ---------- Screen: Pipeline ---------- */
+function renderPipeline(){
+  const el = document.getElementById("screen-pipeline");
+  const list = searchFiltered(state.cases);
+  el.innerHTML = '<div class="board">' + STAGES.map(st => {
+    const cs = list.filter(c => c.stage === st);
+    const value = cs.length ? ZAR(cs.reduce((a,c)=>a+c.value,0)) : "—";
+    return '<div class="col" data-stage="' + esc(st) + '">' +
+      '<div class="col-head"><div class="row"><span class="dot" style="background:' + STAGE_COLOR[st] + '"></span><div class="name">' + esc(st) + '</div><div class="cnt">' + cs.length + '</div></div><div class="val">' + value + '</div></div>' +
+      '<div class="col-body" data-stage-drop="' + esc(st) + '">' +
+        cs.map(c => cardHtml(c)).join("") +
+      '</div>' +
+    '</div>';
+  }).join("") + '</div>';
+
+  el.querySelectorAll(".kcard").forEach(card => {
+    card.addEventListener("click", () => openDrawer(card.dataset.id));
+    card.addEventListener("dragstart", e => { card.classList.add("dragging"); e.dataTransfer.setData("text/plain", card.dataset.id); });
+    card.addEventListener("dragend", () => card.classList.remove("dragging"));
+  });
+  el.querySelectorAll("[data-stage-drop]").forEach(col => {
+    col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drag-over"); });
+    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+    col.addEventListener("drop", async e => {
+      e.preventDefault(); col.classList.remove("drag-over");
+      const id = e.dataTransfer.getData("text/plain");
+      const newStage = col.dataset.stageDrop;
+      const c = state.cases.find(x => x.id === id);
+      if(!c || c.stage === newStage) return;
+      const prev = c.stage;
+      c.stage = newStage; render();
+      try{ await updateCase(id, { status:newStage }); }
+      catch(err){ c.stage = prev; render(); alert("Couldn't move that card — try again."); }
+    });
+  });
+}
+function cardHtml(c){
+  return '<div class="kcard" draggable="true" data-id="' + c.id + '">' +
+    '<div class="fam">' + esc(c.family) + '</div>' +
+    '<div class="sub">' + esc(c.contact) + '</div>' +
+    '<div class="sub">' + esc(c.interest) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
+    '<div class="tags">' +
+      '<span class="tag ' + (c.deposit?"deposit":"nodeposit") + '">' + (c.deposit ? "Deposit in" : "No deposit") + '</span>' +
+      '<span class="tag age">' + esc(c.age) + '</span>' +
+    '</div></div>';
+}
+
+/* ---------- Screen: Families ---------- */
+function renderList(){
+  const el = document.getElementById("screen-list");
+  const filters = ["Everyone","Needs a call","Deposit in", ...INTERESTS];
+  let rows = state.cases.filter(c => {
+    if(state.filter === "Needs a call") return ["Lead","Quotation","Design Selection"].includes(c.stage);
+    if(state.filter === "Deposit in") return c.deposit;
+    if(INTERESTS.includes(state.filter)) return c.interest === state.filter;
+    return true;
+  });
+  rows = searchFiltered(rows);
+
+  el.innerHTML = '<div class="panel">' +
+    '<div class="filters-row">' + filters.map(f =>
+      '<button class="chip' + (state.filter===f?" active":"") + '" data-filter="' + esc(f) + '">' + esc(f) + '</button>'
+    ).join("") + '</div>' +
+    '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Family</th><th>In memory of</th><th>Wanting</th><th>Town</th><th>Stage</th><th class="right">Value</th><th class="right">Last touch</th>' +
+    '</tr></thead><tbody>' +
+    (rows.length ? rows.map(c =>
+      '<tr class="rowclick" data-open="' + c.id + '">' +
+        '<td style="font-weight:700">' + esc(c.family) + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(c.inMemoryOf || "—") + '</td>' +
+        '<td>' + esc(c.interest) + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(c.town || "—") + '</td>' +
+        '<td><span class="stagepill" style="background:' + STAGE_COLOR[c.stage] + '22;color:var(--ink)">' + esc(c.stage) + '</span></td>' +
+        '<td class="right" style="font-weight:700">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
+        '<td class="right" style="color:var(--ink-soft)">' + esc(c.age) + '</td>' +
+      '</tr>'
+    ).join("") : '<tr><td colspan="7"><div class="empty-state">No families match</div></td></tr>') +
+    '</tbody></table></div>' +
+    '<div class="panel-foot">' + rows.length + ' of ' + state.cases.length + ' families shown</div>' +
+  '</div>';
+
+  el.querySelectorAll("[data-filter]").forEach(btn => btn.addEventListener("click", () => { state.filter = btn.dataset.filter; render(); }));
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+}
+
+/* ---------- Screen: Workshop ---------- */
+function renderProduction(){
+  const el = document.getElementById("screen-production");
+  const lanes = [
+    { name:"Letters & artwork", stages:["Artwork","Artwork Approval"] },
+    { name:"Cutting & polishing", stages:["Manufacturing"] },
+    { name:"Loaded for site", stages:["Ready to Install"] },
+    { name:"On site now", stages:["Installation"] }
+  ];
+  el.innerHTML = '<div class="lanes">' + lanes.map(lane => {
+    const jobs = state.cases.filter(c => lane.stages.includes(c.stage));
+    return '<section class="panel lane">' +
+      '<div class="panel-head"><h2 class="h2" style="font-size:14px;flex:1">' + esc(lane.name) + '</h2><span class="count">' + jobs.length + '</span></div>' +
+      (jobs.length ? jobs.map(c => {
+        const installed = parseLooseDate(c.installedDate);
+        const due = installed ? fmtDate(installed) : "—";
+        return '<div class="job" data-open="' + c.id + '" style="cursor:pointer">' +
+          '<div class="job-top"><div class="fam">' + esc(c.family) + '</div><div class="due" style="color:' + (installed && installed-Date.now() < 3*86400000 ? "#B5493A" : "var(--ink-soft)") + '">' + esc(due) + '</div></div>' +
+          '<div class="spec">' + esc(c.interest) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
+          '<div class="prog"><div class="track"><div class="fill" style="width:' + c.progress + '%"></div></div><div class="owner">' + esc(c.assignedTo || "Unassigned") + '</div></div>' +
+        '</div>';
+      }).join("") : '<div class="lane-empty">Nothing here right now.</div>') +
+    '</section>';
+  }).join("") + '</div>';
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+}
+
+/* ---------- Screen: Calendar ---------- */
+function renderCalendar(){
+  const el = document.getElementById("screen-calendar");
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+  const first = new Date(year, month, 1);
+  const startOffset = (first.getDay() + 6) % 7; // Monday-first
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayNum = now.getDate();
+
+  const events = {};
+  function addEvent(d, label, bg, ink){
+    if(d.getFullYear() !== year || d.getMonth() !== month) return;
+    const n = d.getDate();
+    (events[n] = events[n] || []).push({ label, bg, ink });
   }
-});
+  state.cases.forEach(c => {
+    const installed = parseLooseDate(c.installedDate);
+    if(installed) addEvent(installed, "Install · " + c.family.replace(" family",""), "rgba(32,201,151,.18)", "#0F6B54");
+    const unveil = parseLooseDate(c.unveiling);
+    if(unveil) addEvent(unveil, "Unveiling · " + c.family.replace(" family",""), "#2B2D37", "#F3EEE8");
+  });
 
-// Add new enquiry
-document.getElementById("addBtn").addEventListener("click", () => {
+  const cells = [];
+  for(let i=0;i<startOffset;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(d);
+  while(cells.length % 7 !== 0) cells.push(null);
+
+  el.innerHTML = '<div class="panel" style="padding:18px">' +
+    '<div class="cal-head"><h2 class="h2" style="font-size:16px">' + now.toLocaleDateString("en-ZA",{month:"long",year:"numeric"}) + '</h2>' +
+      '<span style="font-size:12.5px;color:var(--ink-soft)">Installs and unveilings on record</span>' +
+      '<span class="cal-legend"><span class="sw"><span class="dot" style="background:#20C997"></span>Install</span><span class="sw"><span class="dot" style="background:#2B2D37"></span>Unveiling</span></span>' +
+    '</div>' +
+    '<div class="cal-grid">' +
+      ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => '<div class="cal-dayname">' + d + '</div>').join("") +
+      cells.map(n => {
+        if(!n) return '<div class="cal-cell out"></div>';
+        const isToday = n === todayNum;
+        const evs = events[n] || [];
+        return '<div class="cal-cell' + (isToday?" today":"") + '"><div class="cal-num">' + n + '</div>' +
+          evs.map(ev => '<div class="cal-ev" style="background:' + ev.bg + ';color:' + ev.ink + '">' + esc(ev.label) + '</div>').join("") +
+        '</div>';
+      }).join("") +
+    '</div></div>';
+}
+
+/* ---------- Screen: Conversations ---------- */
+function renderMessages(){
+  const el = document.getElementById("screen-messages");
+  const list = state.conversations;
+  if(!state.thread && list.length) state.thread = list[0].id;
+  const sel = list.find(c => c.id === state.thread);
+
+  el.innerHTML = '<div class="msg-grid">' +
+    '<section class="panel">' +
+      (state.convError ? '<div class="empty-state">Couldn\'t load Peach conversations (' + esc(state.convError) + ').</div>' :
+        (list.length ? list.map(t =>
+          '<div class="thread-row' + (state.thread===t.id?" active":"") + '" data-thread="' + t.id + '">' +
+            '<div class="thread-top"><div class="fam">' + esc(t.name) + '</div><div class="when">' + (t.updatedAt ? ageShort(t.updatedAt) : "") + '</div></div>' +
+            '<div class="thread-prev">' + esc(t.preview || t.phone || "") + '</div>' +
+            '<div class="thread-chan">' + esc(t.status) + (t.escalated ? " · escalated" : "") + '</div>' +
+          '</div>'
+        ).join("") : '<div class="empty-state">No escalated conversations right now.</div>')) +
+    '</section>' +
+    '<section class="panel thread-pane">' +
+      (sel ?
+        '<div class="thread-pane-head"><div class="h2" style="font-size:15px">' + esc(sel.name) + '</div><div style="font-size:12px;color:var(--ink-soft);margin-top:3px">' + esc(sel.phone) + ' · ' + esc(sel.status) + '</div></div>' +
+        '<div class="thread-pane-body">' +
+          '<div class="empty-state" style="padding:20px 0">Full message history lives in Peach — the API only shares the conversation list here.</div>' +
+          '<a class="btn-accent" style="display:inline-block;text-align:center;text-decoration:none" href="https://app.trypeach.ai/" target="_blank" rel="noopener">Open in Peach inbox →</a>' +
+        '</div>'
+        : '<div class="empty-state">Select a conversation.</div>') +
+    '</section>' +
+  '</div>';
+
+  el.querySelectorAll("[data-thread]").forEach(row => row.addEventListener("click", () => { state.thread = row.dataset.thread; render(); }));
+}
+
+/* ---------- Screen: Payments ---------- */
+function renderInvoices(){
+  const el = document.getElementById("screen-invoices");
+  const now = new Date();
+  const live = liveCases();
+  const depositsThisMonth = state.cases.filter(c => {
+    const d = c.depositDate ? new Date(c.depositDate) : null;
+    return c.deposit && d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const outstanding = live.reduce((a,c) => a + Math.max(0, c.value - c.paid), 0);
+  const settled = state.cases.filter(c => c.value > 0 && c.paid >= c.value);
+  const stones = state.cases.filter(c => c.interest === "Tombstones" && c.value > 0);
+  const avgStone = stones.length ? stones.reduce((a,c)=>a+c.value,0) / stones.length : 0;
+
+  const invRows = state.cases.filter(c => c.value > 0);
+
+  el.innerHTML = '<div class="stat-grid">' +
+    statCard("Deposits this month", ZAR(depositsThisMonth.reduce((a,c)=>a+c.paid,0)), plural(depositsThisMonth.length, "family")) +
+    statCard("Outstanding", ZAR(outstanding), plural(live.filter(c=>c.value>c.paid).length, "family") + " owing") +
+    statCard("Settled in full", ZAR(settled.reduce((a,c)=>a+c.value,0)), plural(settled.length, "family")) +
+    statCard("Average stone", avgStone ? ZAR(avgStone) : "—", "quoted tombstones") +
+  '</div>' +
+  '<div class="panel">' +
+    '<div class="table-wrap invtable"><table><thead><tr>' +
+      '<th>Family</th><th>For</th><th class="right">Total</th><th class="right">Paid</th><th class="right">Outstanding</th><th>Plan</th>' +
+    '</tr></thead><tbody>' +
+    (invRows.length ? invRows.map(c => {
+      const due = c.value - c.paid;
+      return '<tr class="rowclick" data-open="' + c.id + '">' +
+        '<td style="font-weight:700">' + esc(c.family) + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(c.interest) + '</td>' +
+        '<td class="right">' + ZAR(c.value) + '</td>' +
+        '<td class="right" style="color:var(--green-deep);font-weight:700">' + ZAR(c.paid) + '</td>' +
+        '<td class="right ' + (due>0?"due-pos":"due-zero") + '">' + (due>0 ? ZAR(due) : "—") + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(c.paymentPlan || "—") + '</td>' +
+      '</tr>';
+    }).join("") : '<tr><td colspan="6"><div class="empty-state">No quoted families yet.</div></td></tr>') +
+    '</tbody></table></div>' +
+    '<div class="panel-foot">Deposits reconcile from Peach. A family on a plan is never chased automatically — the reminder lands on Today instead.</div>' +
+  '</div>';
+
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+}
+
+/* ---------- Screen: Reports ---------- */
+function renderReports(){
+  const el = document.getElementById("screen-reports");
+  const now = new Date();
+  const months = [];
+  for(let i=7;i>=0;i--){ const d = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(d); }
+  const counts = months.map(d => {
+    const total = state.cases.filter(c => { const s = new Date(c.submittedAt); return s.getMonth()===d.getMonth() && s.getFullYear()===d.getFullYear(); });
+    const won = total.filter(c => !["Lead","Lost"].includes(c.stage));
+    return { month: d.toLocaleDateString("en-ZA",{month:"short"}), total: total.length, won: won.length };
+  });
+  const maxTotal = Math.max(1, ...counts.map(c=>c.total));
+
+  const townCounts = TOWNS.map(t => ({ town:t, n: state.cases.filter(c=>c.town===t).length }));
+  const maxTown = Math.max(1, ...townCounts.map(t=>t.n));
+
+  const durByStage = STAGES.filter(s=>s!=="Lost").map(s => {
+    const cs = state.cases.filter(c => c.stage === s);
+    const avg = cs.length ? Math.round(cs.reduce((a,c)=>a+c.days,0)/cs.length) : null;
+    return { stage:s, avg };
+  }).filter(x => x.avg !== null);
+
+  el.innerHTML = '<div class="rep-grid">' +
+    '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Enquiries by month</h2>' +
+      '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Filled bars are families past the Lead stage</div>' +
+      '<div class="chart-row">' + counts.map(m =>
+        '<div class="chart-col"><div class="chart-total">' + m.total + '</div>' +
+        '<div class="chart-bar" style="height:' + Math.round((m.total/maxTotal)*100) + '%"><div class="won" style="height:' + (m.total ? Math.round((m.won/m.total)*100) : 0) + '%"></div></div>' +
+        '<div class="chart-month">' + m.month + '</div></div>'
+      ).join("") + '</div>' +
+    '</section>' +
+    '<div style="display:flex;flex-direction:column;gap:16px">' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">By town</h2>' +
+        '<div style="margin-top:14px">' + townCounts.map(t =>
+          '<div class="town-row"><div class="row"><span>' + esc(t.town) + '</span><span>' + plural(t.n, "family") + '</span></div>' +
+          '<div class="track"><div class="fill" style="width:' + Math.round((t.n/maxTown)*100) + '%"></div></div></div>'
+        ).join("") + '</div>' +
+      '</section>' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Average days since enquiry, by current stage</h2>' +
+        '<div style="margin-top:12px">' + (durByStage.length ? durByStage.map(d =>
+          '<div class="dur-row"><span>' + esc(d.stage) + '</span><span>' + d.avg + 'd</span></div>'
+        ).join("") : '<div class="empty-state">Not enough data yet.</div>') + '</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-top:12px;line-height:1.5">This reflects time since first enquiry, not time in the current stage — stage-change history isn\'t tracked yet.</div>' +
+      '</section>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ---------- Screen: On the road ---------- */
+function renderMobile(){
+  const el = document.getElementById("screen-mobile");
+  const today = attentionList();
+  el.innerHTML = '<div class="phone-wrap">' +
+    '<div class="phone"><div class="phone-screen">' +
+      '<div class="phone-head"><div class="phone-statusrow"><span>' + new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) + '</span><span>South Africa</span></div>' +
+        '<div class="phone-title-row"><svg width="21" height="21" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M28 13 H37.5 V30" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M14 24 H23 V26.5" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg>' +
+        '<div class="h2" style="font-size:15px">Today</div><div style="flex:1"></div><div style="font-size:11.5px;color:#8E919E">' + today.length + ' to do</div></div>' +
+      '</div>' +
+      '<div class="phone-body">' + (today.length ? today.map(t => {
+        const wa = t.c.phone ? "https://wa.me/" + toE164(t.c.phone).replace("+","") : "#";
+        const tel = t.c.phone ? "tel:" + t.c.phone.replace(/\s/g,"") : "#";
+        return '<div class="phone-card" data-open="' + t.c.id + '">' +
+          '<div class="top"><div class="fam">' + esc(t.c.family) + '</div><div class="when" style="color:' + t.color + '">' + esc(t.when) + '</div></div>' +
+          '<div class="act">' + esc(t.reason) + '</div>' +
+          '<div class="btnrow"><a class="call" href="' + tel + '" onclick="event.stopPropagation()">Call</a><a class="wa" href="' + wa + '" target="_blank" onclick="event.stopPropagation()">WhatsApp</a></div>' +
+        '</div>';
+      }).join("") : '<div class="empty-state">Nothing waiting — enjoy the drive.</div>') + '</div>' +
+      '<div class="phone-tabs"><div class="active">Today</div><div>Families</div><div>Workshop</div><div>More</div></div>' +
+    '</div></div>' +
+    '<div class="panel" style="flex:1;min-width:260px;max-width:460px;padding:20px">' +
+      '<h2 class="h2" style="font-size:16px">What the phone is for</h2>' +
+      '<div style="font-size:13px;color:var(--ink-soft);line-height:1.65;margin-top:10px">On site there are three things worth doing: see who is waiting, call them, and mark the stone installed. Everything else — quoting, artwork, invoices — stays on the desk where there is room to be careful.</div>' +
+      '<div style="height:1px;background:var(--hairline-soft);margin:16px 0"></div>' +
+      '<div class="phone-note"><span class="dot"></span><div style="font-size:12.5px;line-height:1.55">Tap a card to open the family and see the full history.</div></div>' +
+      '<div class="phone-note"><span class="dot"></span><div style="font-size:12.5px;line-height:1.55">Call and WhatsApp buttons use the real number on file — nothing to type.</div></div>' +
+      '<div class="phone-note"><span class="dot"></span><div style="font-size:12.5px;line-height:1.55">Everything here comes straight from the same families list — no separate mobile data.</div></div>' +
+    '</div>' +
+  '</div>';
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+}
+
+/* ---------- Screen: Settings ---------- */
+const TOGGLE_DEFS = [
+  { key:"call_new", label:"Call a new enquiry within the hour" },
+  { key:"nudge_quote", label:"Nudge me when a quote turns seven days old" },
+  { key:"aftercare", label:"Remind me three months after an unveiling" }
+];
+function getToggle(key, def){
+  const raw = localStorage.getItem("exhale_crm_toggle_" + key);
+  return raw === null ? def : raw === "1";
+}
+function setToggle(key, val){ localStorage.setItem("exhale_crm_toggle_" + key, val ? "1" : "0"); }
+
+function renderSettings(){
+  const el = document.getElementById("screen-settings");
+  const priceList = [
+    { item:"Granite double", note:"Includes base, letters and install", price:"from " + ZAR(22000) },
+    { item:"Granite single", note:"Includes base, letters and install", price:"from " + ZAR(15500) },
+    { item:"Bronze plaque", note:"Up to 60 characters", price:"from " + ZAR(3600) },
+    { item:"Memorial book", note:"24pp, hard cover, soft-touch", price:"from " + ZAR(2900) }
+  ];
+  el.innerHTML = '<div class="settings-grid">' +
+    '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Pipeline stages</h2>' +
+      '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">The words the whole system speaks — set in the Notion database.</div>' +
+      '<div style="margin-top:14px">' + STAGES.map(s =>
+        '<div class="stage-row"><span class="dot" style="background:' + STAGE_COLOR[s] + '"></span><span class="name">' + esc(s) + '</span><span class="cnt">' + stageCount(s) + '</span></div>'
+      ).join("") + '</div>' +
+    '</section>' +
+    '<div style="display:flex;flex-direction:column;gap:16px">' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Price list</h2>' +
+        '<div style="font-size:11.5px;color:var(--ink-soft);margin-top:3px">Reference only — quote each family in the drawer.</div>' +
+        '<div style="margin-top:14px">' + priceList.map(p =>
+          '<div class="price-row"><div><div class="item">' + esc(p.item) + '</div><div class="note">' + esc(p.note) + '</div></div><div class="amt">' + p.price + '</div></div>'
+        ).join("") + '</div>' +
+      '</section>' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Towns we serve</h2>' +
+        '<div style="margin-top:14px">' + TOWNS.map(t => '<span class="town-chip">' + esc(t) + '</span>').join("") + '</div>' +
+        '<div style="height:1px;background:var(--hairline-soft);margin:16px 0"></div>' +
+        '<h2 class="h2" style="font-size:15px">Reminders</h2>' +
+        '<div style="margin-top:12px">' + TOGGLE_DEFS.map(t => {
+          const on = getToggle(t.key, true);
+          return '<div class="toggle-row"><button class="toggle-track" data-toggle="' + t.key + '" style="background:' + (on?"var(--green)":"#DCD5C9") + '"><span class="knob" style="left:' + (on?"18px":"2px") + '"></span></button><div class="toggle-lbl">' + esc(t.label) + '</div></div>';
+        }).join("") + '</div>' +
+      '</section>' +
+    '</div>' +
+  '</div>';
+
+  el.querySelectorAll("[data-toggle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.toggle;
+      setToggle(key, !getToggle(key, true));
+      renderSettings();
+    });
+  });
+}
+
+/* ---------- Drawer ---------- */
+function openDrawer(id){ state.drawer = id; renderDrawer(); document.getElementById("drawerOverlay").classList.add("open"); }
+function closeDrawer(){ document.getElementById("drawerOverlay").classList.remove("open"); state.drawer = null; }
+document.getElementById("drawerOverlay").addEventListener("click", e => { if(e.target.id === "drawerOverlay") closeDrawer(); });
+
+function renderDrawer(){
+  const c = state.cases.find(x => x.id === state.drawer);
+  const drawer = document.getElementById("drawer");
+  if(!c){ drawer.innerHTML = ""; return; }
+
+  const fields = [
+    { label:"Speaking with", value:c.contact },
+    { label:"Phone", value:c.phone || "—" },
+    { label:"Wanting", value:c.interest },
+    { label:"Town", value:c.town || "—" },
+    { label:"Value", value:c.value ? ZAR(c.value) : "Not quoted yet" },
+    { label:"Paid", value:c.paid ? ZAR(c.paid) : "Nothing yet" },
+    { label:"Unveiling", value:c.unveiling || "—" },
+    { label:"Finding the grave", value:c.landmark || "—" }
+  ];
+  const timeline = [
+    { title:"Now in " + c.stage, body:"Day " + c.days + " with us.", when:"Updated " + c.age + " ago", dot:"#20C997" },
+    { title:"Deposit " + (c.deposit ? "received" : "not yet received"), body: c.deposit ? ZAR(c.paid) + " against " + (c.value?ZAR(c.value):"an unquoted amount") + "." : "Nothing has been asked for yet.", when: c.depositDate ? fmtDate(new Date(c.depositDate)) : "—", dot: c.deposit ? "#128267" : "#C98A20" },
+    { title:"First contact", body:"Came to us for " + c.interest.toLowerCase() + (c.town ? " in " + c.town : "") + ".", when: c.days + " days ago", dot:"#8E919E" }
+  ];
+  const tel = c.phone ? "tel:" + c.phone.replace(/\s/g,"") : null;
+
+  drawer.innerHTML =
+    '<div class="drawer-head">' +
+      '<div class="drawer-head-top"><div style="flex:1">' +
+        '<div class="drawer-kicker">' + esc(c.stage) + '</div>' +
+        '<div class="drawer-fam">' + esc(c.family) + '</div>' +
+        '<div class="drawer-sub">' + (c.inMemoryOf ? "In memory of " + esc(c.inMemoryOf) : "Contact: " + esc(c.contact)) + '</div>' +
+      '</div><button class="drawer-close" id="drawerCloseBtn">×</button></div>' +
+      '<div class="drawer-actions">' +
+        (tel ? '<a class="a1" href="' + tel + '">Call the family</a>' : '<span class="a1" style="opacity:.5">No phone on file</span>') +
+        '<button class="a2" id="logVisitBtn">Log a visit</button>' +
+        '<select class="stage-select" id="drawerStageSelect" style="border:1px solid rgba(255,255,255,.25);background:none;color:#F3EEE8">' +
+          STAGES.map(s => '<option value="' + esc(s) + '"' + (s===c.stage?" selected":"") + '>' + esc(s) + '</option>').join("") +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+    '<div class="drawer-body">' +
+      '<div class="panel" style="padding:16px 18px"><div class="field-grid">' +
+        fields.map(f => '<div><div class="lbl">' + esc(f.label) + '</div><div class="val">' + esc(f.value) + '</div></div>').join("") +
+      '</div></div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:12px">Their story so far</div>' +
+        timeline.map(t => '<div class="timeline-item"><div class="timeline-dotcol"><span class="timeline-dot" style="background:' + t.dot + '"></span><span class="timeline-line"></span></div>' +
+          '<div><div class="timeline-title">' + esc(t.title) + '</div><div class="timeline-body">' + esc(t.body) + '</div><div class="timeline-when">' + esc(t.when) + '</div></div></div>'
+        ).join("") +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px">Notes</div>' +
+        '<div class="notes-text">' + (c.notes ? esc(c.notes) : "No notes yet.") + '</div>' +
+        '<textarea class="notes-area" id="notesArea" placeholder="Add a note — what was said, what we promised…">' + esc(c.notes) + '</textarea>' +
+        '<div class="save-row"><button class="btn-accent" id="saveNotesBtn">Save note</button><span class="save-status" id="notesStatus"></span>' +
+          (c.url ? '<a href="' + c.url + '" target="_blank" style="margin-left:auto;font-size:12px">Open in Notion →</a>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
+  document.getElementById("drawerStageSelect").addEventListener("change", async e => {
+    const newStage = e.target.value, prev = c.stage;
+    c.stage = newStage;
+    try{ await updateCase(c.id, { status:newStage }); render(); renderDrawer(); }
+    catch(err){ c.stage = prev; e.target.value = prev; alert("Couldn't move stage — try again."); }
+  });
+  document.getElementById("logVisitBtn").addEventListener("click", async () => {
+    const stamp = new Date().toLocaleString("en-ZA", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+    const line = "[" + stamp + "] Visit logged.";
+    const newNotes = c.notes ? c.notes + "\n" + line : line;
+    try{ await updateCase(c.id, { notes:newNotes }); c.notes = newNotes; renderDrawer(); }
+    catch(err){ alert("Couldn't log that visit — try again."); }
+  });
+  document.getElementById("saveNotesBtn").addEventListener("click", async () => {
+    const status = document.getElementById("notesStatus");
+    const val = document.getElementById("notesArea").value;
+    status.textContent = "Saving…"; status.className = "save-status";
+    try{ await updateCase(c.id, { notes:val }); c.notes = val; status.textContent = "Saved ✓"; status.className = "save-status ok"; }
+    catch(err){ status.textContent = "Couldn't save: " + err.message; status.className = "save-status err"; }
+  });
+}
+
+/* ---------- New family modal ---------- */
+document.getElementById("newFamilyBtn").addEventListener("click", () => {
   ["aName","aPhone","aEmail","aMessage"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("aInterest").value = "Not sure yet";
   document.getElementById("aTown").value = "";
   document.getElementById("addStatus").textContent = "";
   document.getElementById("addOverlay").classList.add("open");
 });
-document.getElementById("addClose").addEventListener("click", () => {
-  document.getElementById("addOverlay").classList.remove("open");
-});
-document.getElementById("addOverlay").addEventListener("click", e => {
-  if(e.target.id === "addOverlay") document.getElementById("addOverlay").classList.remove("open");
-});
+document.getElementById("addClose").addEventListener("click", () => document.getElementById("addOverlay").classList.remove("open"));
+document.getElementById("addOverlay").addEventListener("click", e => { if(e.target.id === "addOverlay") document.getElementById("addOverlay").classList.remove("open"); });
 document.getElementById("addSaveBtn").addEventListener("click", async () => {
-  const statusEl = document.getElementById("addStatus");
+  const status = document.getElementById("addStatus");
   const name = document.getElementById("aName").value.trim();
   const phone = document.getElementById("aPhone").value.trim();
-  if(!name || !phone){
-    statusEl.textContent = "Name and phone are required.";
-    statusEl.className = "save-status err";
-    return;
-  }
-  statusEl.textContent = "Adding…";
-  statusEl.className = "save-status";
+  if(!name || !phone){ status.textContent = "Name and phone are required."; status.className = "save-status err"; return; }
+  status.textContent = "Adding…"; status.className = "save-status";
   try{
     const res = await fetch("/.netlify/functions/crm-create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         name, phone,
         email: document.getElementById("aEmail").value.trim(),
@@ -576,50 +1250,32 @@ document.getElementById("addSaveBtn").addEventListener("click", async () => {
       })
     });
     const data = await res.json();
-    if(!res.ok || !data.success) throw new Error(data.error || "Could not add enquiry");
+    if(!res.ok || !data.success) throw new Error(data.error || "Could not add family");
     document.getElementById("addOverlay").classList.remove("open");
     await loadAll();
-  }catch(err){
-    statusEl.textContent = "Error: " + err.message;
-    statusEl.className = "save-status err";
-  }
+  }catch(err){ status.textContent = "Error: " + err.message; status.className = "save-status err"; }
 });
 
-// View toggle
-document.getElementById("viewKanbanBtn").addEventListener("click", () => {
-  currentView = "kanban";
-  document.getElementById("viewKanbanBtn").classList.add("active");
-  document.getElementById("viewListBtn").classList.remove("active");
-  document.getElementById("boardView").style.display = "flex";
-  document.getElementById("listView").style.display = "none";
-  render();
-});
-document.getElementById("viewListBtn").addEventListener("click", () => {
-  currentView = "list";
-  document.getElementById("viewListBtn").classList.add("active");
-  document.getElementById("viewKanbanBtn").classList.remove("active");
-  document.getElementById("boardView").style.display = "none";
-  document.getElementById("listView").style.display = "block";
-  render();
-});
+/* ---------- Search ---------- */
+document.getElementById("searchInput").addEventListener("input", e => { state.query = e.target.value; render(); });
 
-document.querySelectorAll("th[data-sort]").forEach(th => {
-  th.addEventListener("click", () => {
-    const key = th.dataset.sort;
-    if(sortKey === key){ sortDir = sortDir === "asc" ? "desc" : "asc"; }
-    else { sortKey = key; sortDir = "asc"; }
-    render();
-  });
-});
+/* ---------- Router ---------- */
+const SCREEN_RENDERERS = {
+  dash: renderDash, pipeline: renderPipeline, list: renderList, production: renderProduction,
+  calendar: renderCalendar, messages: renderMessages, invoices: renderInvoices,
+  reports: renderReports, mobile: renderMobile, settings: renderSettings
+};
+function render(){
+  renderNav();
+  renderHeader();
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-" + state.screen).classList.add("active");
+  SCREEN_RENDERERS[state.screen]();
+}
 
-document.getElementById("searchInput").addEventListener("input", render);
-document.getElementById("refreshBtn").addEventListener("click", loadAll);
-
-// Dark mode — shared preference with Front Desk
-function applyTheme(theme){ document.documentElement.setAttribute("data-theme", theme); }
-applyTheme(localStorage.getItem("exhale_desk_theme") || "light");
-
-loadAll();
+async function boot(){
+  await loadAll();
+}
 </script>
 </body>
 </html>
