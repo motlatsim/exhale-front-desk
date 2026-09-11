@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Exhale Memorials — CRM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate:#2B2D37; --green:#20C997; --green-deep:#189873; --cream:#F3EEE8;
+    --card:#FFFFFF; --ink:#2B2D37; --ink-soft:#6B6F7B; --hairline:#E7E2D8;
+    --amber:#C98A20; --rust:#B5493A; --rust-pale:#F5E1DD;
+    --shadow: 0 1px 2px rgba(43,45,55,0.05), 0 10px 28px rgba(43,45,55,0.07);
+  }
+  :root[data-theme="dark"]{
+    --cream:#1A1B21; --card:#24252D; --ink:#F3EEE8; --ink-soft:#9A9CA6;
+    --hairline:rgba(255,255,255,0.09); --rust-pale:rgba(226,119,106,0.16);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{ height:100%; }
+  body{ font-family:'Nunito', sans-serif; background:var(--cream); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  .shell{ min-height:100vh; display:flex; flex-direction:column; }
+
+  header{
+    background:var(--slate); color:#F3EEE8; padding:16px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    position:sticky; top:0; z-index:50;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-word{ font-family:'Poppins', sans-serif; font-weight:800; font-size:18px; color:#F3EEE8; }
+  .brand-sub{ font-size:11px; color:#B9BAC4; text-transform:uppercase; letter-spacing:0.8px; }
+  .back-link{ font-size:12px; color:#B9BAC4; text-decoration:none; }
+  .back-link:hover{ color:var(--green); }
+  .header-mid{ flex:1; display:flex; align-items:center; gap:12px; min-width:220px; max-width:420px; }
+  .search-input{
+    flex:1; padding:9px 14px; border-radius:20px; border:1px solid rgba(255,255,255,0.18);
+    background:rgba(255,255,255,0.07); color:#fff; font-family:'Nunito',sans-serif; font-size:13px;
+  }
+  .search-input::placeholder{ color:#9A9CA8; }
+  .header-right{ display:flex; align-items:center; gap:10px; }
+  .btn{
+    font-family:'Nunito',sans-serif; font-weight:700; font-size:12.5px; cursor:pointer;
+    padding:9px 16px; border-radius:20px; border:none; display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn-primary{ background:var(--green); color:#0e2a20; }
+  .btn-primary:hover{ background:var(--green-deep); color:#fff; }
+  .btn-ghost{ background:none; border:1px solid rgba(255,255,255,0.25); color:#F3EEE8; }
+  .btn-ghost:hover{ background:rgba(255,255,255,0.08); }
+  .view-toggle{ display:flex; background:rgba(255,255,255,0.08); border-radius:20px; padding:3px; }
+  .view-toggle button{
+    background:none; border:none; color:#B9BAC4; font-family:'Nunito',sans-serif; font-weight:700;
+    font-size:12px; padding:6px 13px; border-radius:16px; cursor:pointer;
+  }
+  .view-toggle button.active{ background:var(--green); color:#0e2a20; }
+
+  main{ flex:1; padding:20px 28px 40px; }
+  .error-banner{ background:var(--rust-pale); color:var(--rust); border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:14px; display:none; }
+
+  /* Kanban */
+  .board{ display:flex; gap:14px; overflow-x:auto; padding-bottom:12px; align-items:flex-start; }
+  .col{
+    flex:0 0 250px; background:var(--card); border-radius:14px; box-shadow:var(--shadow);
+    display:flex; flex-direction:column; max-height:calc(100vh - 140px);
+  }
+  .col-head{ padding:13px 14px 10px; border-bottom:1px solid var(--hairline); flex-shrink:0; }
+  .col-title{ font-family:'Poppins',sans-serif; font-weight:700; font-size:12.5px; }
+  .col-count{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .col-body{ flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; min-height:60px; }
+  .col-body.drag-over{ background:rgba(32,201,151,0.08); }
+  .kcard{
+    background:var(--cream); border-radius:10px; padding:11px 12px; cursor:grab;
+    border:1px solid var(--hairline); font-size:12.5px;
+  }
+  .kcard:active{ cursor:grabbing; }
+  .kcard.dragging{ opacity:0.4; }
+  .kcard-name{ font-weight:700; font-size:13px; }
+  .kcard-meta{ color:var(--ink-soft); font-size:11px; margin-top:3px; }
+  .kcard-flags{ margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; }
+  .flag{ font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:10px; }
+  .flag.deposit{ background:rgba(32,201,151,0.15); color:var(--green-deep); }
+  .flag.warn{ background:var(--rust-pale); color:var(--rust); }
+
+  /* List/table */
+  .table-wrap{ background:var(--card); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{
+    text-align:left; padding:12px 14px; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;
+    color:var(--ink-soft); border-bottom:1px solid var(--hairline); cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  th:hover{ color:var(--ink); }
+  td{ padding:11px 14px; border-bottom:1px solid var(--hairline); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  tr.row-clickable{ cursor:pointer; }
+  tr.row-clickable:hover{ background:var(--cream); }
+  .stage-select{
+    font-family:'Nunito',sans-serif; font-size:11.5px; font-weight:700; padding:5px 9px; border-radius:14px;
+    border:1px solid var(--hairline); background:var(--cream); color:var(--ink);
+  }
+  .empty-state{ padding:50px 0; text-align:center; color:var(--ink-soft); font-size:13px; }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(43,45,55,0.55); z-index:200;
+    display:none; align-items:center; justify-content:center; padding:20px;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--card); border-radius:16px; width:100%; max-width:520px; max-height:88vh;
+    overflow-y:auto; padding:26px 26px 22px;
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+  .modal-title{ font-family:'Poppins',sans-serif; font-weight:700; font-size:18px; }
+  .modal-close{ background:none; border:none; font-size:20px; color:var(--ink-soft); cursor:pointer; line-height:1; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.3px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:10px 12px; border-radius:9px; border:1px solid var(--hairline);
+    font-family:'Nunito',sans-serif; font-size:13.5px; background:var(--cream); color:var(--ink);
+  }
+  .field textarea{ resize:vertical; min-height:70px; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .field-check{ display:flex; align-items:center; gap:8px; }
+  .field-check input{ width:auto; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; align-items:center; }
+  .save-status{ font-size:12px; font-weight:600; }
+  .save-status.ok{ color:var(--green-deep); }
+  .save-status.err{ color:var(--rust); }
+  .link-out{ font-size:12px; color:var(--green-deep); text-decoration:none; }
+
+  @media (max-width:700px){
+    .header-mid{ order:3; max-width:none; flex-basis:100%; }
+    .field-row{ grid-template-columns:1fr; }
+  }
+
+  #gate{
+    position:fixed; inset:0; z-index:999; background:var(--slate);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:18px;
+  }
+  #gate .gate-title{ font-family:'Poppins', sans-serif; color:#F3EEE8; font-size:20px; font-weight:700; }
+  #gate .gate-title span{ color:var(--green); }
+  #gate form{ display:flex; flex-direction:column; gap:12px; width:260px; }
+  #gate input{
+    padding:12px 14px; border-radius:9px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.06); color:#F3EEE8; font-family:'Nunito',sans-serif; font-size:14px;
+  }
+  #gate input::placeholder{ color:#9A9CA8; }
+  #gate button{
+    padding:12px 14px; border-radius:9px; border:none; background:var(--green); color:#12241D;
+    font-weight:800; font-size:13.5px; cursor:pointer; font-family:'Nunito',sans-serif;
+  }
+  #gate button:hover{ background:var(--green-deep); color:#fff; }
+  #gate .gate-error{ color:#E6A79A; font-size:12px; text-align:center; min-height:16px; }
+  .shell{ display:none; }
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="gate-title">exhale <span>CRM</span></div>
+  <form id="gateForm">
+    <input type="password" id="gatePassword" placeholder="Enter password" autofocus>
+    <button type="submit">Unlock</button>
+    <div class="gate-error" id="gateError"></div>
+  </form>
+</div>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <span class="brand-word">exhale <span style="color:var(--green)">CRM</span></span>
+      <a class="back-link" href="index.html">← Front Desk</a>
+    </div>
+    <div class="header-mid">
+      <input class="search-input" id="searchInput" placeholder="Search name or phone…">
+    </div>
+    <div class="header-right">
+      <div class="view-toggle">
+        <button id="viewKanbanBtn" class="active">Kanban</button>
+        <button id="viewListBtn">List</button>
+      </div>
+      <button class="btn btn-ghost" id="refreshBtn">Refresh</button>
+      <button class="btn btn-primary" id="addBtn">+ Add Enquiry</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="error-banner" id="errorBanner"></div>
+    <div id="boardView" class="board"></div>
+    <div id="listView" class="table-wrap" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="name">Name</th>
+            <th data-sort="interest">Interest</th>
+            <th data-sort="town">Town</th>
+            <th data-sort="status">Stage</th>
+            <th data-sort="deposit_paid">Deposit</th>
+            <th data-sort="submitted_at">Submitted</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Detail / edit modal -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="detailTitle">Enquiry</div>
+      <button class="modal-close" id="detailClose">×</button>
+    </div>
+    <div class="field"><label>Name</label><input id="fName"></div>
+    <div class="field-row">
+      <div class="field"><label>Phone</label><input id="fPhone"></div>
+      <div class="field"><label>Email</label><input id="fEmail"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Interested In</label>
+        <select id="fInterest">
+          <option>Tombstones</option><option>Plaques</option><option>Grave Restorations</option>
+          <option>Memorial Books</option><option>Not sure yet</option>
+        </select>
+      </div>
+      <div class="field"><label>Town</label>
+        <select id="fTown">
+          <option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option>
+          <option>Flagstaff</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Stage</label>
+      <select id="fStatus">
+        <option>Lead</option><option>Design Selection</option><option>Quotation</option>
+        <option>Deposit Confirmed</option><option>Artwork</option><option>Artwork Approval</option>
+        <option>Manufacturing</option><option>Ready to Install</option><option>Installation</option>
+        <option>After-Installation Service</option><option>Lost</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field field-check"><input type="checkbox" id="fDepositPaid"><label style="margin:0;">Deposit Paid</label></div>
+      <div class="field"><label>Deposit Date</label><input type="date" id="fDepositDate"></div>
+    </div>
+    <div class="field"><label>Installed Date</label><input type="date" id="fInstalledDate"></div>
+    <div class="field"><label>Original Message</label><textarea id="fMessage" readonly style="opacity:0.75;"></textarea></div>
+    <div class="field"><label>Notes</label><textarea id="fNotes" placeholder="Running notes on this enquiry…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="saveBtn">Save changes</button>
+      <span class="save-status" id="saveStatus"></span>
+      <a class="link-out" id="notionLink" href="#" target="_blank" style="margin-left:auto;">Open in Notion →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Add new enquiry modal -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add Enquiry</div>
+      <button class="modal-close" id="addClose">×</button>
+    </div>
+    <div class="field"><label>Name *</label><input id="aName"></div>
+    <div class="field-row">
+      <div class="field"><label>Phone *</label><input id="aPhone" placeholder="082 123 4567"></div>
+      <div class="field"><label>Email</label><input id="aEmail"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Interested In</label>
+        <select id="aInterest">
+          <option>Tombstones</option><option>Plaques</option><option>Grave Restorations</option>
+          <option>Memorial Books</option><option>Not sure yet</option>
+        </select>
+      </div>
+      <div class="field"><label>Town</label>
+        <select id="aTown">
+          <option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option>
+          <option>Flagstaff</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Message / Notes</label><textarea id="aMessage" placeholder="What are they after?"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="addSaveBtn">Add enquiry</button>
+      <span class="save-status" id="addStatus"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Password gate (shared with Front Desk via sessionStorage) ---
+const GATE_HASH = "6dc6da2a4d2f76400701a5c58c07d795098208a2b904f899ec76a024e55f8718";
+async function sha256(text){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+function showApp(){
+  document.getElementById("gate").style.display = "none";
+  document.querySelector(".shell").style.display = "flex";
+}
+if(sessionStorage.getItem("exhale_desk_unlocked") === "1"){
+  showApp();
+}
+document.getElementById("gateForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const val = document.getElementById("gatePassword").value;
+  const hash = await sha256(val);
+  if(hash === GATE_HASH){
+    sessionStorage.setItem("exhale_desk_unlocked", "1");
+    showApp();
+  }else{
+    document.getElementById("gateError").textContent = "Incorrect password";
+    document.getElementById("gatePassword").value = "";
+  }
+});
+const STAGES = ["Lead","Design Selection","Quotation","Deposit Confirmed","Artwork","Artwork Approval","Manufacturing","Ready to Install","Installation","After-Installation Service","Lost"];
+
+let allEnquiries = [];
+let currentView = "kanban";
+let sortKey = "submitted_at";
+let sortDir = "desc";
+let selectedId = null;
+
+function timeAgo(iso){
+  if(!iso) return "—";
+  const diff = (Date.now() - new Date(iso).getTime())/1000;
+  if(diff < 60) return "just now";
+  if(diff < 3600) return Math.floor(diff/60) + "m ago";
+  if(diff < 86400) return Math.floor(diff/3600) + "h ago";
+  return Math.floor(diff/86400) + "d ago";
+}
+function esc(s){
+  return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function loadAll(){
+  const banner = document.getElementById("errorBanner");
+  banner.style.display = "none";
+  try{
+    const resp = await fetch("/.netlify/functions/notion-enquiries");
+    if(!resp.ok) throw new Error("Function error " + resp.status);
+    const parsed = await resp.json();
+    if(!parsed || !parsed.enquiries) throw new Error("Could not parse response");
+    allEnquiries = parsed.enquiries;
+    render();
+  }catch(err){
+    banner.textContent = "Couldn't load enquiries (" + err.message + ").";
+    banner.style.display = "block";
+  }
+}
+
+function filtered(){
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  if(!q) return allEnquiries;
+  return allEnquiries.filter(e =>
+    (e.name||"").toLowerCase().includes(q) || (e.phone||"").toLowerCase().includes(q)
+  );
+}
+
+function render(){
+  if(currentView === "kanban") renderKanban(); else renderList();
+}
+
+function renderKanban(){
+  const list = filtered();
+  const board = document.getElementById("boardView");
+  board.innerHTML = STAGES.map(stage => {
+    const cards = list.filter(e => e.status === stage);
+    return `<div class="col">
+      <div class="col-head">
+        <div class="col-title">${stage}</div>
+        <div class="col-count">${cards.length}</div>
+      </div>
+      <div class="col-body" data-stage="${esc(stage)}">
+        ${cards.map(e => cardHtml(e)).join("")}
+      </div>
+    </div>`;
+  }).join("");
+
+  // Drag and drop wiring
+  board.querySelectorAll(".kcard").forEach(el => {
+    el.addEventListener("dragstart", e => {
+      el.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", el.dataset.id);
+    });
+    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+    el.addEventListener("click", () => openDetail(el.dataset.id));
+  });
+  board.querySelectorAll(".col-body").forEach(col => {
+    col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drag-over"); });
+    col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+    col.addEventListener("drop", async e => {
+      e.preventDefault();
+      col.classList.remove("drag-over");
+      const id = e.dataTransfer.getData("text/plain");
+      const newStage = col.dataset.stage;
+      const enquiry = allEnquiries.find(x => x.id === id);
+      if(!enquiry || enquiry.status === newStage) return;
+      const prevStage = enquiry.status;
+      enquiry.status = newStage;
+      render();
+      try{
+        await updateEnquiry(id, { status: newStage });
+      }catch(err){
+        enquiry.status = prevStage;
+        render();
+        alert("Couldn't move that card — try again.");
+      }
+    });
+  });
+}
+
+function cardHtml(e){
+  return `<div class="kcard" draggable="true" data-id="${e.id}">
+    <div class="kcard-name">${esc(e.name)}${!e.phone_valid ? " ⚠️" : ""}</div>
+    <div class="kcard-meta">${[esc(e.interest), esc(e.town)].filter(Boolean).join(" · ")}</div>
+    <div class="kcard-meta">${timeAgo(e.submitted_at)}</div>
+    <div class="kcard-flags">
+      ${e.deposit_paid ? '<span class="flag deposit">Deposit paid</span>' : ""}
+      ${!e.phone_valid ? '<span class="flag warn">Check phone</span>' : ""}
+    </div>
+  </div>`;
+}
+
+function renderList(){
+  let list = filtered();
+  list = [...list].sort((a,b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if(sortKey === "submitted_at"){ av = new Date(av||0).getTime(); bv = new Date(bv||0).getTime(); }
+    if(av === bv) return 0;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return av > bv ? dir : -dir;
+  });
+  const body = document.getElementById("listBody");
+  if(!list.length){
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">No enquiries match</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = list.map(e => `
+    <tr>
+      <td class="row-clickable" data-id="${e.id}">${esc(e.name)}${!e.phone_valid ? " ⚠️" : ""}</td>
+      <td class="row-clickable" data-id="${e.id}">${esc(e.interest)}</td>
+      <td class="row-clickable" data-id="${e.id}">${esc(e.town) || "—"}</td>
+      <td>
+        <select class="stage-select" data-id="${e.id}">
+          ${STAGES.map(s => `<option ${s===e.status?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </td>
+      <td class="row-clickable" data-id="${e.id}">${e.deposit_paid ? "✅" : "—"}</td>
+      <td class="row-clickable" data-id="${e.id}">${timeAgo(e.submitted_at)}</td>
+    </tr>
+  `).join("");
+
+  body.querySelectorAll(".row-clickable").forEach(td => {
+    td.addEventListener("click", () => openDetail(td.dataset.id));
+  });
+  body.querySelectorAll(".stage-select").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const id = sel.dataset.id;
+      const enquiry = allEnquiries.find(x => x.id === id);
+      const prev = enquiry.status;
+      enquiry.status = sel.value;
+      try{
+        await updateEnquiry(id, { status: sel.value });
+      }catch(err){
+        enquiry.status = prev;
+        sel.value = prev;
+        alert("Couldn't update that stage — try again.");
+      }
+    });
+  });
+}
+
+async function updateEnquiry(id, patch){
+  const res = await fetch("/.netlify/functions/crm-update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...patch })
+  });
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || "Update failed");
+  return data;
+}
+
+function openDetail(id){
+  const e = allEnquiries.find(x => x.id === id);
+  if(!e) return;
+  selectedId = id;
+  document.getElementById("detailTitle").textContent = e.name;
+  document.getElementById("fName").value = e.name || "";
+  document.getElementById("fPhone").value = e.phone || "";
+  document.getElementById("fEmail").value = e.email || "";
+  document.getElementById("fInterest").value = e.interest || "Not sure yet";
+  document.getElementById("fTown").value = e.town || "";
+  document.getElementById("fStatus").value = e.status || "Lead";
+  document.getElementById("fDepositPaid").checked = !!e.deposit_paid;
+  document.getElementById("fDepositDate").value = (e.deposit_date||"").slice(0,10);
+  document.getElementById("fInstalledDate").value = (e.installed_date||"").slice(0,10);
+  document.getElementById("fMessage").value = e.message || "(none)";
+  document.getElementById("fNotes").value = e.notes || "";
+  document.getElementById("notionLink").href = e.url || "#";
+  document.getElementById("saveStatus").textContent = "";
+  document.getElementById("detailOverlay").classList.add("open");
+}
+
+document.getElementById("detailClose").addEventListener("click", () => {
+  document.getElementById("detailOverlay").classList.remove("open");
+});
+document.getElementById("detailOverlay").addEventListener("click", e => {
+  if(e.target.id === "detailOverlay") document.getElementById("detailOverlay").classList.remove("open");
+});
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("saveStatus");
+  statusEl.textContent = "Saving…";
+  statusEl.className = "save-status";
+  const patch = {
+    name: document.getElementById("fName").value.trim(),
+    phone: document.getElementById("fPhone").value.trim(),
+    email: document.getElementById("fEmail").value.trim(),
+    interest: document.getElementById("fInterest").value,
+    town: document.getElementById("fTown").value,
+    status: document.getElementById("fStatus").value,
+    deposit_paid: document.getElementById("fDepositPaid").checked,
+    deposit_date: document.getElementById("fDepositDate").value,
+    installed_date: document.getElementById("fInstalledDate").value,
+    notes: document.getElementById("fNotes").value
+  };
+  try{
+    await updateEnquiry(selectedId, patch);
+    Object.assign(allEnquiries.find(x => x.id === selectedId), patch);
+    statusEl.textContent = "Saved ✓";
+    statusEl.className = "save-status ok";
+    render();
+  }catch(err){
+    statusEl.textContent = "Couldn't save: " + err.message;
+    statusEl.className = "save-status err";
+  }
+});
+
+// Add new enquiry
+document.getElementById("addBtn").addEventListener("click", () => {
+  ["aName","aPhone","aEmail","aMessage"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("aInterest").value = "Not sure yet";
+  document.getElementById("aTown").value = "";
+  document.getElementById("addStatus").textContent = "";
+  document.getElementById("addOverlay").classList.add("open");
+});
+document.getElementById("addClose").addEventListener("click", () => {
+  document.getElementById("addOverlay").classList.remove("open");
+});
+document.getElementById("addOverlay").addEventListener("click", e => {
+  if(e.target.id === "addOverlay") document.getElementById("addOverlay").classList.remove("open");
+});
+document.getElementById("addSaveBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("addStatus");
+  const name = document.getElementById("aName").value.trim();
+  const phone = document.getElementById("aPhone").value.trim();
+  if(!name || !phone){
+    statusEl.textContent = "Name and phone are required.";
+    statusEl.className = "save-status err";
+    return;
+  }
+  statusEl.textContent = "Adding…";
+  statusEl.className = "save-status";
+  try{
+    const res = await fetch("/.netlify/functions/crm-create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name, phone,
+        email: document.getElementById("aEmail").value.trim(),
+        interest: document.getElementById("aInterest").value,
+        town: document.getElementById("aTown").value,
+        message: document.getElementById("aMessage").value.trim()
+      })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || "Could not add enquiry");
+    document.getElementById("addOverlay").classList.remove("open");
+    await loadAll();
+  }catch(err){
+    statusEl.textContent = "Error: " + err.message;
+    statusEl.className = "save-status err";
+  }
+});
+
+// View toggle
+document.getElementById("viewKanbanBtn").addEventListener("click", () => {
+  currentView = "kanban";
+  document.getElementById("viewKanbanBtn").classList.add("active");
+  document.getElementById("viewListBtn").classList.remove("active");
+  document.getElementById("boardView").style.display = "flex";
+  document.getElementById("listView").style.display = "none";
+  render();
+});
+document.getElementById("viewListBtn").addEventListener("click", () => {
+  currentView = "list";
+  document.getElementById("viewListBtn").classList.add("active");
+  document.getElementById("viewKanbanBtn").classList.remove("active");
+  document.getElementById("boardView").style.display = "none";
+  document.getElementById("listView").style.display = "block";
+  render();
+});
+
+document.querySelectorAll("th[data-sort]").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.sort;
+    if(sortKey === key){ sortDir = sortDir === "asc" ? "desc" : "asc"; }
+    else { sortKey = key; sortDir = "asc"; }
+    render();
+  });
+});
+
+document.getElementById("searchInput").addEventListener("input", render);
+document.getElementById("refreshBtn").addEventListener("click", loadAll);
+
+// Dark mode — shared preference with Front Desk
+function applyTheme(theme){ document.documentElement.setAttribute("data-theme", theme); }
+applyTheme(localStorage.getItem("exhale_desk_theme") || "light");
+
+loadAll();
+</script>
+</body>
+</html>

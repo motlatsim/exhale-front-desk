@@ -161,8 +161,10 @@
   .lead-stage.lost{ background: var(--rust-pale); color:var(--rust); border-color:transparent; }
   .lead-stage.quoted{ background: var(--amber-pale); color:var(--amber); border-color:transparent; }
 
-  .status-row{ display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid var(--hairline); }
+  .status-row{ display:flex; align-items:center; gap:14px; padding:8px 0; border-bottom:1px solid var(--hairline); }
   .status-row:last-child{ border-bottom:none; }
+  .status-row .status-main{ font-size:12.5px; }
+  .status-row .status-count{ font-size:14px; }
   .status-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   .status-main{ flex:1; font-weight:700; font-size:13.5px; }
   .status-count{ font-family:'Poppins',sans-serif; font-weight:700; font-size:16px; }
@@ -349,9 +351,10 @@ document.getElementById("gateForm").addEventListener("submit", async (e) => {
 
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
-const STATUS_ORDER = ["New", "Contacted", "Quoted", "Won", "Lost"];
-const STATUS_COLOR = { New: "var(--rust)", Contacted: "var(--amber)", Quoted: "#3B82C4", Won: "var(--green)", Lost: "var(--ink-soft)" };
-const STATUS_BADGE_CLASS = { New: "hot", Contacted: "", Quoted: "quoted", Won: "hot", Lost: "lost" };
+const STATUS_ORDER = ["Lead", "Design Selection", "Quotation", "Deposit Confirmed", "Artwork", "Artwork Approval", "Manufacturing", "Ready to Install", "Installation", "After-Installation Service", "Lost"];
+const STATUS_COLOR = { "Lead": "var(--rust)", "Design Selection": "var(--amber)", "Quotation": "var(--amber)", "Deposit Confirmed": "#3B82C4", "Artwork": "#8B5CF6", "Artwork Approval": "#8B5CF6", "Manufacturing": "#A16207", "Ready to Install": "var(--green)", "Installation": "var(--green)", "After-Installation Service": "var(--ink-soft)", "Lost": "var(--ink-soft)" };
+const STATUS_BADGE_CLASS = { "Lead": "hot", "Installation": "hot", "After-Installation Service": "hot", "Lost": "lost" };
+const ACTIVE_STAGES = ["Deposit Confirmed", "Artwork", "Artwork Approval", "Manufacturing", "Ready to Install", "Installation"];
 
 let escConversations = [];
 let selectedConversationId = null;
@@ -387,7 +390,8 @@ function computeAndRender(enquiries){
   const byStatus = {};
   STATUS_ORDER.forEach(s => byStatus[s] = 0);
   enquiries.forEach(e => { byStatus[e.status] = (byStatus[e.status] || 0) + 1; });
-  const newCount = byStatus["New"] || 0;
+  const newCount = byStatus["Lead"] || 0;
+  const activeCount = enquiries.filter(e => ACTIVE_STAGES.includes(e.status)).length;
 
   // Stat row
   document.getElementById("statRow").innerHTML = `
@@ -399,12 +403,12 @@ function computeAndRender(enquiries){
     <div class="stat-card ${newCount ? "attention" : ""}">
       <div class="stat-label">Awaiting Response</div>
       <div class="stat-value">${newCount}</div>
-      <div class="stat-foot">Status still marked "New"</div>
+      <div class="stat-foot">Still sitting at "Lead"</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Won</div>
-      <div class="stat-value">${byStatus["Won"] || 0}</div>
-      <div class="stat-foot">since records began</div>
+      <div class="stat-label">Active Jobs</div>
+      <div class="stat-value">${activeCount}</div>
+      <div class="stat-foot">Deposit confirmed through installation</div>
     </div>
     <div class="stat-card ${flaggedPhone.length ? "attention" : ""}">
       <div class="stat-label">Phone Needs Checking</div>
