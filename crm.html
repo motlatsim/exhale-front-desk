@@ -273,9 +273,6 @@
   .drawer-actions .a1{border:none;background:var(--green);color:#0E2A20;font-weight:800;font-size:12.5px;padding:9px 15px;border-radius:9px;cursor:pointer}
   .drawer-actions .a2{border:1px solid rgba(255,255,255,.25);background:none;color:#F3EEE8;font-weight:700;font-size:12.5px;padding:9px 15px;border-radius:9px;cursor:pointer}
   .drawer-body{padding:20px 24px 40px;display:flex;flex-direction:column;gap:16px}
-  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .field-grid .lbl{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
-  .field-grid .val{font-size:13.5px;font-weight:600;margin-top:4px}
   .timeline-item{display:flex;gap:12px;padding-bottom:14px}
   .timeline-dotcol{display:flex;flex-direction:column;align-items:center;flex:0 0 10px}
   .timeline-dot{width:9px;height:9px;border-radius:50%;margin-top:4px}
@@ -530,7 +527,8 @@ function parseLooseDate(str){
 function fmtDate(d){
   return d.toLocaleDateString("en-ZA", { day:"numeric", month:"short", year:"numeric" });
 }
-function plural(n, word){ return n + " " + word + (n === 1 ? "" : "s"); }
+function plural(n, word){ return n + " " + (n === 1 ? word : (word === "family" ? "families" : word + "s")); }
+function wantingLabel(c){ return c.stoneSpec ? c.stoneSpec : c.interest; }
 
 /* ---------- Data loading ---------- */
 function normalize(e){
@@ -561,6 +559,7 @@ function normalize(e){
     paymentPlan: e.payment_plan || "",
     progress: Math.max(0, Math.min(100, Number(e.production_progress) || 0)),
     assignedTo: e.assigned_to || "",
+    stoneSpec: e.stone_spec || "",
     submittedAt: submitted,
     updatedAt: e.updated_at || submitted,
     days: daysSince(submitted) || 0,
@@ -825,7 +824,7 @@ function cardHtml(c){
   return '<div class="kcard" draggable="true" data-id="' + c.id + '">' +
     '<div class="fam">' + esc(c.family) + '</div>' +
     '<div class="sub">' + esc(c.contact) + '</div>' +
-    '<div class="sub">' + esc(c.interest) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
+    '<div class="sub">' + esc(wantingLabel(c)) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
     '<div class="tags">' +
       '<span class="tag ' + (c.deposit?"deposit":"nodeposit") + '">' + (c.deposit ? "Deposit in" : "No deposit") + '</span>' +
       '<span class="tag age">' + esc(c.age) + '</span>' +
@@ -855,7 +854,7 @@ function renderList(){
       '<tr class="rowclick" data-open="' + c.id + '">' +
         '<td style="font-weight:700">' + esc(c.family) + '</td>' +
         '<td style="color:var(--ink-soft)">' + esc(c.inMemoryOf || "—") + '</td>' +
-        '<td>' + esc(c.interest) + '</td>' +
+        '<td>' + esc(wantingLabel(c)) + '</td>' +
         '<td style="color:var(--ink-soft)">' + esc(c.town || "—") + '</td>' +
         '<td><span class="stagepill" style="background:' + STAGE_COLOR[c.stage] + '22;color:var(--ink)">' + esc(c.stage) + '</span></td>' +
         '<td class="right" style="font-weight:700">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
@@ -888,7 +887,7 @@ function renderProduction(){
         const due = installed ? fmtDate(installed) : "—";
         return '<div class="job" data-open="' + c.id + '" style="cursor:pointer">' +
           '<div class="job-top"><div class="fam">' + esc(c.family) + '</div><div class="due" style="color:' + (installed && installed-Date.now() < 3*86400000 ? "#B5493A" : "var(--ink-soft)") + '">' + esc(due) + '</div></div>' +
-          '<div class="spec">' + esc(c.interest) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
+          '<div class="spec">' + esc(wantingLabel(c)) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
           '<div class="prog"><div class="track"><div class="fill" style="width:' + c.progress + '%"></div></div><div class="owner">' + esc(c.assignedTo || "Unassigned") + '</div></div>' +
         '</div>';
       }).join("") : '<div class="lane-empty">Nothing here right now.</div>') +
@@ -1005,7 +1004,7 @@ function renderInvoices(){
       const due = c.value - c.paid;
       return '<tr class="rowclick" data-open="' + c.id + '">' +
         '<td style="font-weight:700">' + esc(c.family) + '</td>' +
-        '<td style="color:var(--ink-soft)">' + esc(c.interest) + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(wantingLabel(c)) + '</td>' +
         '<td class="right">' + ZAR(c.value) + '</td>' +
         '<td class="right" style="color:var(--green-deep);font-weight:700">' + ZAR(c.paid) + '</td>' +
         '<td class="right ' + (due>0?"due-pos":"due-zero") + '">' + (due>0 ? ZAR(due) : "—") + '</td>' +
@@ -1171,16 +1170,6 @@ function renderDrawer(){
   const drawer = document.getElementById("drawer");
   if(!c){ drawer.innerHTML = ""; return; }
 
-  const fields = [
-    { label:"Speaking with", value:c.contact },
-    { label:"Phone", value:c.phone || "—" },
-    { label:"Wanting", value:c.interest },
-    { label:"Town", value:c.town || "—" },
-    { label:"Value", value:c.value ? ZAR(c.value) : "Not quoted yet" },
-    { label:"Paid", value:c.paid ? ZAR(c.paid) : "Nothing yet" },
-    { label:"Unveiling", value:c.unveiling || "—" },
-    { label:"Finding the grave", value:c.landmark || "—" }
-  ];
   const timeline = [
     { title:"Now in " + c.stage, body:"Day " + c.days + " with us.", when:"Updated " + c.age + " ago", dot:"#20C997" },
     { title:"Deposit " + (c.deposit ? "received" : "not yet received"), body: c.deposit ? ZAR(c.paid) + " against " + (c.value?ZAR(c.value):"an unquoted amount") + "." : "Nothing has been asked for yet.", when: c.depositDate ? fmtDate(new Date(c.depositDate)) : "—", dot: c.deposit ? "#128267" : "#C98A20" },
@@ -1204,9 +1193,35 @@ function renderDrawer(){
       '</div>' +
     '</div>' +
     '<div class="drawer-body">' +
-      '<div class="panel" style="padding:16px 18px"><div class="field-grid">' +
-        fields.map(f => '<div><div class="lbl">' + esc(f.label) + '</div><div class="val">' + esc(f.value) + '</div></div>').join("") +
-      '</div></div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:12px">Family details</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Speaking with</label><input id="fContact" value="' + esc(c.contact) + '"></div>' +
+          '<div class="field"><label>Phone</label><input id="fPhone" value="' + esc(c.phone) + '"></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Email</label><input id="fEmail" value="' + esc(c.email) + '"></div>' +
+          '<div class="field"><label>Town</label><select id="fTown"><option value="">—</option>' +
+            TOWNS.map(t => '<option value="' + esc(t) + '"' + (t===c.town?" selected":"") + '>' + esc(t) + '</option>').join("") +
+          '</select></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Wanting</label><select id="fInterest">' +
+            INTERESTS.map(i => '<option value="' + esc(i) + '"' + (i===c.interest?" selected":"") + '>' + esc(i) + '</option>').join("") +
+          '</select></div>' +
+          '<div class="field"><label>Unveiling</label><input id="fUnveiling" value="' + esc(c.unveiling) + '" placeholder="e.g. 26 Sep 2026"></div>' +
+        '</div>' +
+        '<div class="field"><label>Stone / job spec</label><textarea id="fStoneSpec" placeholder="Material, size, finish, engraving — e.g. granite double, black polished, sandblast-engraved lettering">' + esc(c.stoneSpec) + '</textarea></div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Value quoted (R)</label><input type="number" id="fValue" value="' + (c.value || "") + '"></div>' +
+          '<div class="field"><label>Paid so far (R)</label><input type="number" id="fPaid" value="' + (c.paid || "") + '"></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Finding the grave</label><input id="fLandmark" value="' + esc(c.landmark) + '"></div>' +
+          '<div class="field"><label>Site access</label><input id="fSiteAccess" value="' + esc(c.siteAccess) + '" placeholder="e.g. dirt road, 4x4 recommended"></div>' +
+        '</div>' +
+        '<div class="save-row"><button class="btn-accent" id="saveFieldsBtn">Save changes</button><span class="save-status" id="fieldsStatus"></span></div>' +
+      '</div>' +
       '<div class="panel" style="padding:16px 18px">' +
         '<div class="h2" style="font-size:14px;margin-bottom:12px">Their story so far</div>' +
         timeline.map(t => '<div class="timeline-item"><div class="timeline-dotcol"><span class="timeline-dot" style="background:' + t.dot + '"></span><span class="timeline-line"></span></div>' +
@@ -1243,6 +1258,43 @@ function renderDrawer(){
     status.textContent = "Saving…"; status.className = "save-status";
     try{ await updateCase(c.id, { notes:val }); c.notes = val; status.textContent = "Saved ✓"; status.className = "save-status ok"; }
     catch(err){ status.textContent = "Couldn't save: " + err.message; status.className = "save-status err"; }
+  });
+  document.getElementById("saveFieldsBtn").addEventListener("click", async () => {
+    const status = document.getElementById("fieldsStatus");
+    const patch = {
+      name: document.getElementById("fContact").value.trim(),
+      phone: document.getElementById("fPhone").value.trim(),
+      email: document.getElementById("fEmail").value.trim(),
+      town: document.getElementById("fTown").value,
+      interest: document.getElementById("fInterest").value,
+      unveiling: document.getElementById("fUnveiling").value.trim(),
+      stone_spec: document.getElementById("fStoneSpec").value.trim(),
+      quoted_value: document.getElementById("fValue").value,
+      amount_paid: document.getElementById("fPaid").value,
+      landmark: document.getElementById("fLandmark").value.trim(),
+      site_access: document.getElementById("fSiteAccess").value.trim()
+    };
+    if(!patch.name || !patch.phone){
+      status.textContent = "Name and phone are required.";
+      status.className = "save-status err";
+      return;
+    }
+    status.textContent = "Saving…"; status.className = "save-status";
+    try{
+      await updateCase(c.id, patch);
+      Object.assign(c, {
+        contact: patch.name, family: familyName(patch.name), phone: patch.phone, email: patch.email,
+        town: patch.town, interest: patch.interest, unveiling: patch.unveiling, stoneSpec: patch.stone_spec,
+        value: Number(patch.quoted_value) || 0, paid: Number(patch.amount_paid) || 0,
+        landmark: patch.landmark, siteAccess: patch.site_access
+      });
+      render(); renderDrawer();
+      document.getElementById("fieldsStatus").textContent = "Saved ✓";
+      document.getElementById("fieldsStatus").className = "save-status ok";
+    }catch(err){
+      status.textContent = "Couldn't save: " + err.message;
+      status.className = "save-status err";
+    }
   });
 }
 

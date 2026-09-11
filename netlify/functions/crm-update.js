@@ -87,6 +87,18 @@ exports.handler = async function (event) {
   if (data.assigned_to !== undefined) {
     properties["Assigned To"] = { rich_text: [{ text: { content: String(data.assigned_to).slice(0, 2000) } }] };
   }
+  if (data.stone_spec !== undefined) {
+    properties["Stone Spec"] = { rich_text: [{ text: { content: String(data.stone_spec).slice(0, 2000) } }] };
+  }
+  if (data.unveiling !== undefined) {
+    properties["Unveiling Date"] = { rich_text: [{ text: { content: String(data.unveiling).slice(0, 2000) } }] };
+  }
+  if (data.landmark !== undefined) {
+    properties["Landmark"] = { rich_text: [{ text: { content: String(data.landmark).slice(0, 2000) } }] };
+  }
+  if (data.site_access !== undefined) {
+    properties["Site Access"] = { rich_text: [{ text: { content: String(data.site_access).slice(0, 2000) } }] };
+  }
 
   if (Object.keys(properties).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "Nothing to update." }) };

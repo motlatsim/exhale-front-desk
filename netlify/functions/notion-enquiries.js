@@ -71,7 +71,8 @@ exports.handler = async function (event, context) {
         amount_paid: (p["Amount Paid"] && p["Amount Paid"].number) || 0,
         payment_plan: richText("Payment Plan"),
         production_progress: (p["Production Progress"] && p["Production Progress"].number) || 0,
-        assigned_to: richText("Assigned To")
+        assigned_to: richText("Assigned To"),
+        stone_spec: richText("Stone Spec")
       };
     });
 
