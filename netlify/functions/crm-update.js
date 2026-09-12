@@ -11,6 +11,7 @@ const VALID_STATUSES = [
 const VALID_INTERESTS = ["Tombstones", "Plaques", "Grave Restorations", "Memorial Books", "Not sure yet"];
 const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
 const VALID_PAYMENT_OPTIONS = ["Laybuy", "Credit", "Insurance Policy", "Once-off Settlement"];
+const VALID_CREDIT_STATUSES = ["Not Applied", "Applied", "Approved", "Declined", "Active", "Settled"];
 const { requireKey } = require("./_require-key");
 
 exports.handler = async function (event) {
@@ -117,6 +118,33 @@ exports.handler = async function (event) {
   }
   if (data.location_pin !== undefined) {
     properties["Location Pin"] = { url: data.location_pin || null };
+  }
+  if (data.estimate_number !== undefined) {
+    properties["Estimate Number"] = { rich_text: [{ text: { content: String(data.estimate_number).slice(0, 100) } }] };
+  }
+  if (data.estimate_date !== undefined) {
+    properties["Estimate Date"] = { rich_text: [{ text: { content: String(data.estimate_date).slice(0, 100) } }] };
+  }
+  if (data.invoice_number !== undefined) {
+    properties["Invoice Number"] = { rich_text: [{ text: { content: String(data.invoice_number).slice(0, 100) } }] };
+  }
+  if (data.invoice_date !== undefined) {
+    properties["Invoice Date"] = { rich_text: [{ text: { content: String(data.invoice_date).slice(0, 100) } }] };
+  }
+  if (data.credit_provider !== undefined) {
+    properties["Credit Provider"] = { rich_text: [{ text: { content: String(data.credit_provider).slice(0, 200) } }] };
+  }
+  if (data.credit_status !== undefined) {
+    properties["Credit Status"] = data.credit_status && VALID_CREDIT_STATUSES.includes(data.credit_status) ? { select: { name: data.credit_status } } : { select: null };
+  }
+  if (data.credit_approved_amount !== undefined) {
+    properties["Credit Approved Amount"] = { number: data.credit_approved_amount === null || data.credit_approved_amount === "" ? null : Number(data.credit_approved_amount) };
+  }
+  if (data.credit_reference !== undefined) {
+    properties["Credit Reference"] = { rich_text: [{ text: { content: String(data.credit_reference).slice(0, 200) } }] };
+  }
+  if (data.installments !== undefined) {
+    properties["Installments"] = { rich_text: [{ text: { content: String(data.installments).slice(0, 2000) } }] };
   }
 
   if (Object.keys(properties).length === 0) {

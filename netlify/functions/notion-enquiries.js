@@ -77,7 +77,16 @@ exports.handler = async function (event, context) {
         payment_plan: richText("Payment Plan"),
         production_progress: (p["Production Progress"] && p["Production Progress"].number) || 0,
         assigned_to: richText("Assigned To"),
-        memorial_spec: richText("Memorial Spec")
+        memorial_spec: richText("Memorial Spec"),
+        estimate_number: richText("Estimate Number"),
+        estimate_date: richText("Estimate Date"),
+        invoice_number: richText("Invoice Number"),
+        invoice_date: richText("Invoice Date"),
+        credit_provider: richText("Credit Provider"),
+        credit_status: (p["Credit Status"] && p["Credit Status"].select && p["Credit Status"].select.name) || "",
+        credit_approved_amount: (p["Credit Approved Amount"] && p["Credit Approved Amount"].number) || 0,
+        credit_reference: richText("Credit Reference"),
+        installments: richText("Installments")
       };
     });
 

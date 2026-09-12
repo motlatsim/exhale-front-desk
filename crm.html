@@ -300,6 +300,15 @@
   .field input,.field select,.field textarea{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--hairline);font-size:13.5px;background:var(--panel);color:var(--ink)}
   .field textarea{resize:vertical;min-height:64px}
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .inst-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+  .inst-row .inst-due{flex:0 0 150px}
+  .inst-row .inst-amount{flex:0 0 120px}
+  .inst-row input{padding:9px 10px;border-radius:8px;border:1px solid var(--hairline);font-size:13px;background:var(--panel);color:var(--ink)}
+  .inst-paid-label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);flex:0 0 auto}
+  .inst-paid-label input{padding:0;width:auto}
+  .inst-remove{border:none;background:none;color:var(--rust);font-size:12px;font-weight:700;cursor:pointer;padding:6px 4px}
+  .inst-summary{font-size:12px;color:var(--ink-soft);margin-top:8px}
+  .inst-summary.warn{color:var(--rust);font-weight:700}
   .modal-actions{display:flex;gap:10px;align-items:center;margin-top:16px}
 
   @media (max-width:860px){
@@ -308,6 +317,53 @@
     .app.open{display:block}
     .topbar{flex-wrap:wrap}
     .field-row{grid-template-columns:1fr}
+  }
+
+  /* Estimate / invoice document — colors are fixed (not theme variables)
+     since this must always render as a plain white printable page. */
+  #printDoc{display:none}
+  #printDoc.open{display:block;position:fixed;inset:0;z-index:500;overflow-y:auto;background:#787c86}
+  .doc-toolbar{position:sticky;top:0;background:#2B2D37;padding:14px 24px;display:flex;gap:10px;justify-content:flex-end;z-index:5}
+  .doc-toolbar button{border:none;cursor:pointer;padding:9px 16px;border-radius:9px;font-weight:700;font-size:13px}
+  .doc-toolbar .doc-close{background:none;border:1px solid rgba(255,255,255,.3);color:#F3EEE8}
+  .doc-toolbar .doc-print{background:#20C997;color:#0E2A20}
+  .doc-page{max-width:800px;margin:24px auto 60px;padding:44px 48px;background:#fff;color:#232530;box-shadow:0 10px 40px rgba(0,0,0,.25);font-family:'Nunito',sans-serif}
+  .doc-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+  .doc-title{font-family:'Poppins',sans-serif;font-size:22px;font-weight:700;color:#128267;letter-spacing:.5px}
+  .doc-biz-name{font-weight:800;font-size:14px;margin-top:8px}
+  .doc-biz-line{font-size:12.5px;color:#5A5D68;margin-top:2px}
+  .doc-contact{text-align:right;font-size:12.5px;color:#5A5D68;line-height:1.7}
+  .doc-brand{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-bottom:8px}
+  .doc-brand-word{font-family:'Poppins',sans-serif;font-weight:800;font-size:16px;color:#2B2D37}
+  .doc-box{background:#EDF5F5;border-radius:10px;padding:18px 22px;margin-top:28px}
+  .doc-box-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#5A5D68;margin-bottom:6px}
+  .doc-bold{font-weight:800;font-size:13.5px}
+  .doc-line{font-size:12.5px;color:#3A3D48;margin-top:2px}
+  .doc-divider{height:1px;background:rgba(43,45,55,.12);margin:16px 0;border-top:1px dashed rgba(43,45,55,.25);background:none}
+  .doc-detail-row{display:flex;justify-content:space-between;font-size:12.5px;margin-top:6px}
+  .doc-detail-row span:first-child{color:#5A5D68}
+  .doc-detail-row span:last-child{font-weight:700}
+  .doc-table{width:100%;border-collapse:collapse;margin-top:30px;font-size:12.5px}
+  .doc-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#5A5D68;padding-bottom:10px;border-bottom:2px solid #2B2D37}
+  .doc-table th.right,.doc-table td.right{text-align:right}
+  .doc-table td{padding:12px 0;border-bottom:1px solid #EEE9E1;vertical-align:top}
+  .doc-table td.doc-item-name{font-weight:700}
+  .doc-totals{margin-top:6px;padding-top:6px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .doc-total-row{display:flex;justify-content:space-between;width:260px;font-size:13px}
+  .doc-total-row span:first-child{color:#5A5D68}
+  .doc-total-bold{font-weight:800;font-size:15px;border-top:1px solid #2B2D37;padding-top:8px;margin-top:2px}
+  .doc-status{width:260px;text-align:right;font-weight:800;font-size:13px;margin-top:2px}
+  .doc-status.ok{color:#128267}
+  .doc-status.due{color:#B5493A}
+  .doc-banking{margin-top:36px;padding-top:18px;border-top:1px solid #EEE9E1;font-size:12px;color:#3A3D48;line-height:1.8}
+  .doc-banking .doc-box-label{margin-bottom:8px}
+  .doc-footnote{margin-top:30px;font-size:11px;color:#9A9DA6;text-align:center}
+  @media print{
+    body *{visibility:hidden}
+    #printDoc, #printDoc *{visibility:visible}
+    #printDoc{position:absolute;inset:0;background:#fff}
+    .doc-toolbar{display:none}
+    .doc-page{box-shadow:none;margin:0;max-width:none}
   }
 </style>
 </head>
@@ -407,6 +463,14 @@
   </div>
 </div>
 
+<div id="printDoc">
+  <div class="doc-toolbar">
+    <button class="doc-close" id="docCloseBtn">Close</button>
+    <button class="doc-print" id="docPrintBtn">Print / Save as PDF</button>
+  </div>
+  <div class="doc-page" id="docPage"></div>
+</div>
+
 <script>
 "use strict";
 
@@ -464,6 +528,18 @@ const STAGE_COLOR = {
 const TOWNS = ["Lusikisiki","Port St Johns","Flagstaff","Other"];
 const INTERESTS = ["Tombstones","Plaques","Grave Restorations","Memorial Books","Not sure yet"];
 const PAYMENT_OPTIONS = ["Laybuy","Credit","Insurance Policy","Once-off Settlement"];
+const CREDIT_STATUSES = ["Not Applied","Applied","Approved","Declined","Active","Settled"];
+const BUSINESS = {
+  name: "Exhale Memorials",
+  addressLines: ["14 Jacaranda Avenue", "Lusikisiki, Eastern Cape, 4820"],
+  email: "motlatsim@exhaleat.com",
+  phone: "+27 71 671 9152",
+  website: "www.exhaleat.com",
+  bank: "[Add bank name]",
+  accountName: "[Add account name]",
+  accountNumber: "[Add account number]",
+  branchCode: "[Add branch code]"
+};
 const NAV = [
   { key:"dash", label:"Today", icon:'<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>' },
   { key:"pipeline", label:"Pipeline", icon:'<rect x="3" y="4" width="5" height="16" rx="1"></rect><rect x="10" y="4" width="5" height="11" rx="1"></rect><rect x="17" y="4" width="4" height="7" rx="1"></rect>', badge:true },
@@ -572,6 +648,15 @@ function normalize(e){
     progress: Math.max(0, Math.min(100, Number(e.production_progress) || 0)),
     assignedTo: e.assigned_to || "",
     memorialSpec: e.memorial_spec || "",
+    estimateNumber: e.estimate_number || "",
+    estimateDate: e.estimate_date || "",
+    invoiceNumber: e.invoice_number || "",
+    invoiceDate: e.invoice_date || "",
+    creditProvider: e.credit_provider || "",
+    creditStatus: e.credit_status || "",
+    creditApprovedAmount: Number(e.credit_approved_amount) || 0,
+    creditReference: e.credit_reference || "",
+    installments: (function(){ try{ return JSON.parse(e.installments || "[]"); }catch(err){ return []; } })(),
     submittedAt: submitted,
     updatedAt: e.updated_at || submitted,
     days: daysSince(submitted) || 0,
@@ -684,6 +769,17 @@ function attentionList(){
       const diffDays = Math.round((unveil - Date.now()) / 86400000);
       if(diffDays >= 0 && diffDays <= 10){
         items.push({ c, reason: "Unveiling " + (diffDays === 0 ? "is today" : "in " + diffDays + " days") + " — hold the date for the family.", score: 88, when: fmtDate(unveil), color:"#128267" });
+      }
+    }
+    if(c.paymentOption === "Laybuy" && c.installments && c.installments.length){
+      const overdue = c.installments.filter(i => !i.paid && i.due && new Date(i.due) < Date.now());
+      const dueSoon = c.installments.filter(i => !i.paid && i.due && new Date(i.due) >= Date.now() && new Date(i.due) - Date.now() <= 3*86400000);
+      if(overdue.length){
+        const oldest = overdue.sort((a,b) => new Date(a.due) - new Date(b.due))[0];
+        items.push({ c, reason: "Lay-buy installment of " + ZAR(oldest.amount) + " was due " + fmtDate(new Date(oldest.due)) + " — follow up.", score: 85, when: "Overdue", color:"#B5493A" });
+      } else if(dueSoon.length){
+        const next = dueSoon.sort((a,b) => new Date(a.due) - new Date(b.due))[0];
+        items.push({ c, reason: "Lay-buy installment of " + ZAR(next.amount) + " is due " + fmtDate(new Date(next.due)) + ".", score: 60, when: "Due soon", color:"#C98A20" });
       }
     }
     if(reason) items.push({ c, reason, score, when, color });
@@ -1026,9 +1122,54 @@ function renderInvoices(){
     }).join("") : '<tr><td colspan="7"><div class="empty-state">No quoted families yet.</div></td></tr>') +
     '</tbody></table></div>' +
     '<div class="panel-foot">Deposits reconcile from Peach. A family on a plan is never chased automatically — the reminder lands on Today instead.</div>' +
-  '</div>';
+  '</div>' +
+  renderLaybuyPanel() +
+  renderCreditPanel();
 
   el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+}
+
+function renderLaybuyPanel(){
+  const rows = state.cases.filter(c => c.paymentOption === "Laybuy" && c.installments && c.installments.length);
+  if(!rows.length) return "";
+  const withNext = rows.map(c => {
+    const unpaid = c.installments.filter(i => !i.paid && i.due).sort((a,b) => new Date(a.due) - new Date(b.due));
+    const next = unpaid[0];
+    const overdue = next && new Date(next.due) < Date.now();
+    return { c, next, overdue, remaining: unpaid.length };
+  }).sort((a,b) => (a.next && b.next) ? new Date(a.next.due) - new Date(b.next.due) : 0);
+  return '<div class="panel" style="margin-top:16px">' +
+    '<div class="panel-head"><h2 class="h2">Lay-buy schedules</h2><span class="count">' + rows.length + ' on a plan</span></div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Family</th><th>Next installment</th><th class="right">Amount</th><th class="right">Remaining</th></tr></thead><tbody>' +
+    withNext.map(r =>
+      '<tr class="rowclick" data-open="' + r.c.id + '">' +
+        '<td style="font-weight:700">' + esc(r.c.family) + '</td>' +
+        '<td style="color:' + (r.overdue ? "var(--rust)" : "var(--ink-soft)") + ';font-weight:' + (r.overdue?"700":"400") + '">' + (r.next ? (r.overdue ? "Overdue · " : "") + fmtDate(new Date(r.next.due)) : "All paid") + '</td>' +
+        '<td class="right">' + (r.next ? ZAR(r.next.amount) : "—") + '</td>' +
+        '<td class="right" style="color:var(--ink-soft)">' + r.remaining + '</td>' +
+      '</tr>'
+    ).join("") +
+    '</tbody></table></div>' +
+  '</div>';
+}
+
+function renderCreditPanel(){
+  const rows = state.cases.filter(c => c.paymentOption === "Credit" && (c.creditProvider || c.creditStatus));
+  if(!rows.length) return "";
+  return '<div class="panel" style="margin-top:16px">' +
+    '<div class="panel-head"><h2 class="h2">Credit tracking</h2><span class="count">' + plural(rows.length, "family") + '</span></div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Family</th><th>Provider</th><th>Status</th><th class="right">Approved</th><th>Reference</th></tr></thead><tbody>' +
+    rows.map(c =>
+      '<tr class="rowclick" data-open="' + c.id + '">' +
+        '<td style="font-weight:700">' + esc(c.family) + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(c.creditProvider || "—") + '</td>' +
+        '<td>' + esc(c.creditStatus || "—") + '</td>' +
+        '<td class="right">' + (c.creditApprovedAmount ? ZAR(c.creditApprovedAmount) : "—") + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(c.creditReference || "—") + '</td>' +
+      '</tr>'
+    ).join("") +
+    '</tbody></table></div>' +
+  '</div>';
 }
 
 /* ---------- Screen: Reports ---------- */
@@ -1206,6 +1347,11 @@ function renderDrawer(){
       '</div>' +
     '</div>' +
     '<div class="drawer-body">' +
+      '<div class="panel" style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+        '<div class="h2" style="font-size:13px;flex:0 0 auto">Documents</div>' +
+        '<button class="btn-ghost" id="viewEstimateBtn">' + (c.estimateNumber ? "View estimate (" + esc(c.estimateNumber) + ")" : "Create estimate") + '</button>' +
+        '<button class="btn-ghost" id="viewInvoiceBtn">' + (c.invoiceNumber ? "View invoice (" + esc(c.invoiceNumber) + ")" : "Create invoice") + '</button>' +
+      '</div>' +
       '<div class="panel" style="padding:16px 18px">' +
         '<div class="h2" style="font-size:14px;margin-bottom:12px">Family details</div>' +
         '<div class="field-row">' +
@@ -1255,8 +1401,31 @@ function renderDrawer(){
           '<div class="field"><label>Site access</label><input id="fSiteAccess" value="' + esc(c.siteAccess) + '" placeholder="e.g. dirt road, 4x4 recommended"></div>' +
         '</div>' +
         '<div class="field"><label>Location pin</label><input id="fLocationPin" value="' + esc(c.locationPin) + '" placeholder="Google Maps link"></div>' +
-        '<div class="save-row"><button class="btn-accent" id="saveFieldsBtn">Save changes</button><span class="save-status" id="fieldsStatus"></span></div>' +
       '</div>' +
+      (c.paymentOption === "Laybuy" ?
+        '<div class="panel" style="padding:16px 18px">' +
+          '<div class="h2" style="font-size:14px;margin-bottom:4px">Lay-buy schedule</div>' +
+          '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Add each installment\'s due date and amount. Tick Paid as they come in.</div>' +
+          '<div id="installmentsBody"></div>' +
+          '<button class="btn-ghost" id="addInstallmentBtn" style="margin-top:4px">+ Add installment</button>' +
+          '<div class="inst-summary" id="instSummary"></div>' +
+        '</div>' : "") +
+      (c.paymentOption === "Credit" ?
+        '<div class="panel" style="padding:16px 18px">' +
+          '<div class="h2" style="font-size:14px;margin-bottom:12px">Credit tracking</div>' +
+          '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Exhale doesn\'t extend credit directly — this just tracks status with the family\'s lender.</div>' +
+          '<div class="field-row">' +
+            '<div class="field"><label>Credit provider</label><input id="fCreditProvider" value="' + esc(c.creditProvider) + '" placeholder="e.g. African Bank"></div>' +
+            '<div class="field"><label>Status</label><select id="fCreditStatus"><option value="">—</option>' +
+              CREDIT_STATUSES.map(s => '<option value="' + esc(s) + '"' + (s===c.creditStatus?" selected":"") + '>' + esc(s) + '</option>').join("") +
+            '</select></div>' +
+          '</div>' +
+          '<div class="field-row">' +
+            '<div class="field"><label>Approved amount (R)</label><input type="number" id="fCreditApproved" value="' + (c.creditApprovedAmount || "") + '"></div>' +
+            '<div class="field"><label>Reference number</label><input id="fCreditReference" value="' + esc(c.creditReference) + '"></div>' +
+          '</div>' +
+        '</div>' : "") +
+      '<div class="save-row" style="padding:0 4px"><button class="btn-accent" id="saveFieldsBtn">Save changes</button><span class="save-status" id="fieldsStatus"></span></div>' +
       '<div class="panel" style="padding:16px 18px">' +
         '<div class="h2" style="font-size:14px;margin-bottom:12px">Their story so far</div>' +
         timeline.map(t => '<div class="timeline-item"><div class="timeline-dotcol"><span class="timeline-dot" style="background:' + t.dot + '"></span><span class="timeline-line"></span></div>' +
@@ -1273,7 +1442,18 @@ function renderDrawer(){
       '</div>' +
     '</div>';
 
+  if(document.getElementById("installmentsBody")){
+    renderInstallments(c.installments || [], c.value);
+    document.getElementById("addInstallmentBtn").addEventListener("click", () => {
+      const list = readInstallmentsFromDOM();
+      list.push({ due:"", amount:0, paid:false });
+      renderInstallments(list, c.value);
+    });
+  }
+
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
+  document.getElementById("viewEstimateBtn").addEventListener("click", () => viewDocument(c, "Estimate"));
+  document.getElementById("viewInvoiceBtn").addEventListener("click", () => viewDocument(c, "Invoice"));
   document.getElementById("drawerStageSelect").addEventListener("change", async e => {
     const newStage = e.target.value, prev = c.stage;
     c.stage = newStage;
@@ -1317,6 +1497,17 @@ function renderDrawer(){
       site_access: document.getElementById("fSiteAccess").value.trim(),
       location_pin: document.getElementById("fLocationPin").value.trim()
     };
+    let installmentsList = null;
+    if(document.getElementById("installmentsBody")){
+      installmentsList = readInstallmentsFromDOM();
+      patch.installments = JSON.stringify(installmentsList);
+    }
+    if(document.getElementById("fCreditProvider")){
+      patch.credit_provider = document.getElementById("fCreditProvider").value.trim();
+      patch.credit_status = document.getElementById("fCreditStatus").value;
+      patch.credit_approved_amount = document.getElementById("fCreditApproved").value;
+      patch.credit_reference = document.getElementById("fCreditReference").value.trim();
+    }
     if(!patch.name || !patch.phone){
       status.textContent = "Name and phone are required.";
       status.className = "save-status err";
@@ -1334,6 +1525,13 @@ function renderDrawer(){
         cemetery: patch.cemetery, plotNumber: patch.plot_number,
         landmark: patch.landmark, siteAccess: patch.site_access, locationPin: patch.location_pin
       });
+      if(installmentsList) c.installments = installmentsList;
+      if(patch.credit_provider !== undefined){
+        Object.assign(c, {
+          creditProvider: patch.credit_provider, creditStatus: patch.credit_status,
+          creditApprovedAmount: Number(patch.credit_approved_amount) || 0, creditReference: patch.credit_reference
+        });
+      }
       render(); renderDrawer();
       document.getElementById("fieldsStatus").textContent = "Saved ✓";
       document.getElementById("fieldsStatus").className = "save-status ok";
@@ -1342,6 +1540,155 @@ function renderDrawer(){
       status.className = "save-status err";
     }
   });
+}
+
+/* ---------- Lay-buy installments ---------- */
+function readInstallmentsFromDOM(){
+  return Array.from(document.querySelectorAll("#installmentsBody .inst-row")).map(row => ({
+    due: row.querySelector(".inst-due").value,
+    amount: Number(row.querySelector(".inst-amount").value) || 0,
+    paid: row.querySelector(".inst-paid").checked
+  }));
+}
+function renderInstallments(list, quotedValue){
+  const body = document.getElementById("installmentsBody");
+  body.innerHTML = list.length ? list.map((inst, i) =>
+    '<div class="inst-row" data-i="' + i + '">' +
+      '<input type="date" class="inst-due" value="' + esc(inst.due || "") + '">' +
+      '<input type="number" class="inst-amount" placeholder="Amount (R)" value="' + (inst.amount || "") + '">' +
+      '<label class="inst-paid-label"><input type="checkbox" class="inst-paid"' + (inst.paid ? " checked" : "") + '> Paid</label>' +
+      '<button type="button" class="inst-remove" data-i="' + i + '">Remove</button>' +
+    '</div>'
+  ).join("") : '<div class="empty-state" style="padding:10px 0">No installments yet.</div>';
+
+  body.querySelectorAll(".inst-remove").forEach(btn => btn.addEventListener("click", () => {
+    const updated = readInstallmentsFromDOM();
+    updated.splice(Number(btn.dataset.i), 1);
+    renderInstallments(updated, quotedValue);
+  }));
+  body.querySelectorAll(".inst-due, .inst-amount, .inst-paid").forEach(el => el.addEventListener("change", () => {
+    updateInstSummary(readInstallmentsFromDOM(), quotedValue);
+  }));
+  updateInstSummary(list, quotedValue);
+}
+function updateInstSummary(list, quotedValue){
+  const summary = document.getElementById("instSummary");
+  if(!summary) return;
+  const total = list.reduce((a,i) => a + (Number(i.amount) || 0), 0);
+  const paid = list.filter(i => i.paid).reduce((a,i) => a + (Number(i.amount) || 0), 0);
+  const diff = Math.round((quotedValue - total) * 100) / 100;
+  summary.textContent = plural(list.length, "installment") + " · " + ZAR(total) + " scheduled · " + ZAR(paid) + " paid" +
+    (diff !== 0 ? " · " + ZAR(Math.abs(diff)) + (diff > 0 ? " short of the quoted value" : " over the quoted value") : "");
+  summary.className = "inst-summary" + (diff !== 0 ? " warn" : "");
+}
+
+/* ---------- Estimate / invoice documents ---------- */
+function addDays(iso, days){
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+function fmtDateISO(iso){
+  if(!iso) return "—";
+  return fmtDate(new Date(iso + "T00:00:00"));
+}
+function nextDocNumber(prefix, field){
+  let max = 0;
+  state.cases.forEach(c => {
+    const m = (c[field] || "").match(/(\d+)$/);
+    if(m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return prefix + "-" + String(max + 1).padStart(4, "0");
+}
+async function viewDocument(c, type){
+  const numField = type === "Estimate" ? "estimateNumber" : "invoiceNumber";
+  const dateField = type === "Estimate" ? "estimateDate" : "invoiceDate";
+  if(!c[numField]){
+    const prefix = type === "Estimate" ? "EST" : "INV";
+    const num = nextDocNumber(prefix, numField);
+    const dateIso = new Date().toISOString().slice(0,10);
+    const patch = {};
+    patch[type === "Estimate" ? "estimate_number" : "invoice_number"] = num;
+    patch[type === "Estimate" ? "estimate_date" : "invoice_date"] = dateIso;
+    try{
+      await updateCase(c.id, patch);
+      c[numField] = num; c[dateField] = dateIso;
+      render();
+    }catch(err){ alert("Couldn't create the " + type.toLowerCase() + " — try again."); return; }
+  }
+  renderPrintDoc(c, type);
+  document.getElementById("printDoc").classList.add("open");
+}
+function closePrintDoc(){ document.getElementById("printDoc").classList.remove("open"); }
+document.getElementById("docCloseBtn").addEventListener("click", closePrintDoc);
+document.getElementById("docPrintBtn").addEventListener("click", () => window.print());
+
+function renderPrintDoc(c, type){
+  const isInvoice = type === "Invoice";
+  const num = isInvoice ? c.invoiceNumber : c.estimateNumber;
+  const dateIso = isInvoice ? c.invoiceDate : c.estimateDate;
+  const dueIso = addDays(dateIso, isInvoice ? 7 : 14);
+  const due = c.value - c.paid;
+  const itemDesc = c.memorialSpec || (c.interest + (c.deceasedName ? " for the late " + c.deceasedName : ""));
+
+  const page = document.getElementById("docPage");
+  page.innerHTML =
+    '<div class="doc-head">' +
+      '<div>' +
+        '<div class="doc-title">' + type.toUpperCase() + '</div>' +
+        '<div class="doc-biz-name">' + esc(BUSINESS.name) + '</div>' +
+        BUSINESS.addressLines.map(l => '<div class="doc-biz-line">' + esc(l) + '</div>').join("") +
+      '</div>' +
+      '<div>' +
+        '<div class="doc-brand"><svg width="18" height="18" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M28 13 H37.5 V30" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M14 24 H23 V26.5" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="doc-brand-word">exhale</span></div>' +
+        '<div class="doc-contact">' +
+          '<div>' + esc(BUSINESS.email) + '</div>' +
+          '<div>' + esc(BUSINESS.phone) + '</div>' +
+          '<div>' + esc(BUSINESS.website) + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="doc-box">' +
+      '<div class="doc-box-label">Bill to</div>' +
+      '<div class="doc-bold">' + esc(c.contact) + '</div>' +
+      '<div class="doc-line">' + esc(c.family) + '</div>' +
+      (c.town ? '<div class="doc-line">' + esc(c.town) + '</div>' : "") +
+      (c.phone ? '<div class="doc-line">' + esc(c.phone) + '</div>' : "") +
+      '<div class="doc-divider"></div>' +
+      '<div class="doc-detail-row"><span>' + type + ' no.</span><span>' + esc(num) + '</span></div>' +
+      '<div class="doc-detail-row"><span>' + type + ' date</span><span>' + fmtDateISO(dateIso) + '</span></div>' +
+      '<div class="doc-detail-row"><span>' + (isInvoice ? "Due date" : "Valid until") + '</span><span>' + fmtDateISO(dueIso) + '</span></div>' +
+    '</div>' +
+    '<table class="doc-table">' +
+      '<thead><tr><th>#</th><th>Product or service</th><th>Description</th><th class="right">Qty</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead>' +
+      '<tbody><tr>' +
+        '<td>1</td>' +
+        '<td class="doc-item-name">' + esc(c.interest) + '</td>' +
+        '<td>' + esc(itemDesc) + '</td>' +
+        '<td class="right">1</td>' +
+        '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
+        '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
+      '</tr></tbody>' +
+    '</table>' +
+    '<div class="doc-totals">' +
+      '<div class="doc-total-row"><span>Total</span><span>' + ZAR(c.value) + '</span></div>' +
+      (isInvoice ? (
+        '<div class="doc-total-row"><span>Payment</span><span>-' + ZAR(c.paid) + '</span></div>' +
+        '<div class="doc-total-row doc-total-bold"><span>Balance due</span><span>' + ZAR(Math.max(0,due)) + '</span></div>' +
+        '<div class="doc-status ' + (due > 0 ? "due" : "ok") + '">' + (due > 0 ? "Balance due" : "Paid in Full") + '</div>'
+      ) : "") +
+    '</div>' +
+    (isInvoice && due > 0 ? (
+      '<div class="doc-banking">' +
+        '<div class="doc-box-label">Payment details</div>' +
+        '<div>Bank: ' + esc(BUSINESS.bank) + '</div>' +
+        '<div>Account name: ' + esc(BUSINESS.accountName) + '</div>' +
+        '<div>Account number: ' + esc(BUSINESS.accountNumber) + '</div>' +
+        '<div>Branch code: ' + esc(BUSINESS.branchCode) + '</div>' +
+        '<div>Reference: ' + esc(num) + '</div>' +
+      '</div>'
+    ) : "") +
+    '<div class="doc-footnote">' + (isInvoice ? "Thank you for trusting us with your family's memorial." : "This estimate is valid until the date shown above.") + '</div>';
 }
 
 /* ---------- New family modal ---------- */
