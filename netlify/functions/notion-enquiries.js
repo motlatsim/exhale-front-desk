@@ -66,13 +66,18 @@ exports.handler = async function (event, context) {
         submitted_at: (p["Submitted At"] && p["Submitted At"].date && p["Submitted At"].date.start) || page.created_time,
         updated_at: page.last_edited_time,
         url: page.url,
-        in_memory_of: richText("In Memory Of"),
+        deceased_name: richText("Deceased Name"),
+        date_of_birth: richText("Date of Birth"),
+        date_of_death: richText("Date of Death"),
+        cemetery: richText("Cemetery"),
+        plot_number: richText("Plot Number"),
         quoted_value: (p["Quoted Value"] && p["Quoted Value"].number) || 0,
         amount_paid: (p["Amount Paid"] && p["Amount Paid"].number) || 0,
+        payment_option: (p["Payment Option"] && p["Payment Option"].select && p["Payment Option"].select.name) || "",
         payment_plan: richText("Payment Plan"),
         production_progress: (p["Production Progress"] && p["Production Progress"].number) || 0,
         assigned_to: richText("Assigned To"),
-        stone_spec: richText("Stone Spec")
+        memorial_spec: richText("Memorial Spec")
       };
     });
 

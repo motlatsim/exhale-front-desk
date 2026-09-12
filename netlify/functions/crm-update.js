@@ -10,6 +10,7 @@ const VALID_STATUSES = [
 ];
 const VALID_INTERESTS = ["Tombstones", "Plaques", "Grave Restorations", "Memorial Books", "Not sure yet"];
 const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
+const VALID_PAYMENT_OPTIONS = ["Laybuy", "Credit", "Insurance Policy", "Once-off Settlement"];
 const { requireKey } = require("./_require-key");
 
 exports.handler = async function (event) {
@@ -69,8 +70,23 @@ exports.handler = async function (event) {
   if (data.installed_date !== undefined) {
     properties["Installed Date"] = data.installed_date ? { date: { start: data.installed_date } } : { date: null };
   }
-  if (data.in_memory_of !== undefined) {
-    properties["In Memory Of"] = { rich_text: [{ text: { content: String(data.in_memory_of).slice(0, 2000) } }] };
+  if (data.deceased_name !== undefined) {
+    properties["Deceased Name"] = { rich_text: [{ text: { content: String(data.deceased_name).slice(0, 2000) } }] };
+  }
+  if (data.date_of_birth !== undefined) {
+    properties["Date of Birth"] = { rich_text: [{ text: { content: String(data.date_of_birth).slice(0, 200) } }] };
+  }
+  if (data.date_of_death !== undefined) {
+    properties["Date of Death"] = { rich_text: [{ text: { content: String(data.date_of_death).slice(0, 200) } }] };
+  }
+  if (data.cemetery !== undefined) {
+    properties["Cemetery"] = { rich_text: [{ text: { content: String(data.cemetery).slice(0, 2000) } }] };
+  }
+  if (data.plot_number !== undefined) {
+    properties["Plot Number"] = { rich_text: [{ text: { content: String(data.plot_number).slice(0, 200) } }] };
+  }
+  if (data.payment_option !== undefined) {
+    properties["Payment Option"] = data.payment_option && VALID_PAYMENT_OPTIONS.includes(data.payment_option) ? { select: { name: data.payment_option } } : { select: null };
   }
   if (data.quoted_value !== undefined) {
     properties["Quoted Value"] = { number: data.quoted_value === null || data.quoted_value === "" ? null : Number(data.quoted_value) };
@@ -87,8 +103,8 @@ exports.handler = async function (event) {
   if (data.assigned_to !== undefined) {
     properties["Assigned To"] = { rich_text: [{ text: { content: String(data.assigned_to).slice(0, 2000) } }] };
   }
-  if (data.stone_spec !== undefined) {
-    properties["Stone Spec"] = { rich_text: [{ text: { content: String(data.stone_spec).slice(0, 2000) } }] };
+  if (data.memorial_spec !== undefined) {
+    properties["Memorial Spec"] = { rich_text: [{ text: { content: String(data.memorial_spec).slice(0, 2000) } }] };
   }
   if (data.unveiling !== undefined) {
     properties["Unveiling Date"] = { rich_text: [{ text: { content: String(data.unveiling).slice(0, 2000) } }] };
@@ -98,6 +114,9 @@ exports.handler = async function (event) {
   }
   if (data.site_access !== undefined) {
     properties["Site Access"] = { rich_text: [{ text: { content: String(data.site_access).slice(0, 2000) } }] };
+  }
+  if (data.location_pin !== undefined) {
+    properties["Location Pin"] = { url: data.location_pin || null };
   }
 
   if (Object.keys(properties).length === 0) {
