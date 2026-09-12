@@ -328,7 +328,8 @@
   .doc-toolbar .doc-close{background:none;border:1px solid rgba(255,255,255,.3);color:#F3EEE8}
   .doc-toolbar .doc-print{background:#20C997;color:#0E2A20}
   .doc-page{max-width:800px;margin:24px auto 60px;padding:44px 48px;background:#fff;color:#232530;box-shadow:0 10px 40px rgba(0,0,0,.25);font-family:'Nunito',sans-serif}
-  .doc-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+  .doc-table-wrap{overflow-x:auto}
+  .doc-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap}
   .doc-title{font-family:'Poppins',sans-serif;font-size:22px;font-weight:700;color:#128267;letter-spacing:.5px}
   .doc-biz-name{font-weight:800;font-size:14px;margin-top:8px}
   .doc-biz-line{font-size:12.5px;color:#5A5D68;margin-top:2px}
@@ -358,12 +359,20 @@
   .doc-banking{margin-top:36px;padding-top:18px;border-top:1px solid #EEE9E1;font-size:12px;color:#3A3D48;line-height:1.8}
   .doc-banking .doc-box-label{margin-bottom:8px}
   .doc-footnote{margin-top:30px;font-size:11px;color:#9A9DA6;text-align:center}
+  @media screen and (max-width:700px){
+    .doc-page{padding:24px 18px;margin:12px auto 40px;width:calc(100% - 24px)}
+    .doc-contact{text-align:left}
+    .doc-brand{justify-content:flex-start}
+    .doc-total-row, .doc-status{width:100%;max-width:260px}
+    .doc-table{font-size:11.5px;min-width:520px}
+  }
   @media print{
     body *{visibility:hidden}
     #printDoc, #printDoc *{visibility:visible}
     #printDoc{position:absolute;inset:0;background:#fff}
     .doc-toolbar{display:none}
     .doc-page{box-shadow:none;margin:0;max-width:none}
+    .doc-table-wrap{overflow-x:visible}
   }
 </style>
 </head>
@@ -1668,7 +1677,7 @@ function renderPrintDoc(c, type){
       '<div class="doc-detail-row"><span>' + type + ' date</span><span>' + fmtDateISO(dateIso) + '</span></div>' +
       '<div class="doc-detail-row"><span>' + (isInvoice ? "Due date" : "Valid until") + '</span><span>' + fmtDateISO(dueIso) + '</span></div>' +
     '</div>' +
-    '<table class="doc-table">' +
+    '<div class="doc-table-wrap"><table class="doc-table">' +
       '<thead><tr><th>#</th><th>Product or service</th><th>Description</th><th class="right">Qty</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead>' +
       '<tbody><tr>' +
         '<td>1</td>' +
@@ -1678,7 +1687,7 @@ function renderPrintDoc(c, type){
         '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
         '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
       '</tr></tbody>' +
-    '</table>' +
+    '</table></div>' +
     '<div class="doc-totals">' +
       '<div class="doc-total-row"><span>Total</span><span>' + ZAR(c.value) + '</span></div>' +
       (isInvoice ? (
