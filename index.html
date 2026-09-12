@@ -84,6 +84,13 @@
   }
   .refresh-btn:hover{ background: rgba(255,255,255,0.08); }
   .refresh-btn:disabled{ opacity:0.5; cursor:default; }
+  .crm-link{
+    background: var(--green); color:#0e2a20;
+    font-family:'Nunito',sans-serif; font-weight:800; font-size:11.5px;
+    padding:7px 14px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:6px;
+    text-decoration:none; border:none;
+  }
+  .crm-link:hover{ background: var(--green-deep); color:#fff; }
 
   main{ flex:1; min-height:0; overflow:hidden; padding: 20px 32px 20px; max-width:1400px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:14px; }
 
@@ -198,9 +205,36 @@
 
   footer{ text-align:center; font-size:10.5px; color:var(--ink-soft); flex-shrink:0; padding: 2px 0 0; }
 
-  @media (max-width: 980px){
+  @media (max-width: 980px) and (min-width: 761px){
     .stat-row{ grid-template-columns: 1fr 1fr; }
     .grid{ grid-template-columns: 1fr; }
+  }
+
+  /* Below 760px this stops being a fixed-height "kiosk display" (which only
+     works with a tall desktop viewport) and becomes a normal page that
+     scrolls — every panel shows its full content instead of clipping it
+     into a fixed internal scroll area. */
+  @media (max-width: 760px){
+    html, body{ height:auto; overflow:visible; }
+    .shell{ height:auto; min-height:100vh; }
+    header{ padding:16px 18px; }
+    .header-right{ width:100%; flex-wrap:wrap; gap:10px; }
+    .clock{ order:-1; text-align:left; flex:1 1 100%; }
+    main{ overflow:visible; padding:16px 18px 24px; gap:12px; }
+    .stat-row{ grid-template-columns:1fr 1fr; gap:10px; }
+    .stat-card{ padding:14px 16px; }
+    .stat-value{ font-size:24px; }
+    .content-area{ flex:none; gap:12px; }
+    .grid{ flex:none; grid-template-columns:1fr; gap:12px; min-height:0; }
+    .panel{ min-height:0; overflow:visible; max-height:none; }
+    .panel-list{ flex:none; overflow:visible; max-height:none; }
+    .panel-wide{ flex:none; }
+    .esc-layout{ flex-direction:column; }
+    .esc-list{ flex:none; width:100%; max-height:none; overflow:visible; border-right:none; border-bottom:1px solid var(--hairline); padding-right:0; padding-bottom:12px; margin-bottom:12px; }
+    .esc-thread{ min-height:0; }
+    .esc-messages{ flex:none; overflow:visible; }
+    .esc-empty{ height:auto; padding:20px 0; }
+    .lead-meta{ white-space:normal; }
   }
 
   #gate{
@@ -254,6 +288,10 @@
       <div class="brand-sub" style="align-self:center;">Front Desk Monitor</div>
     </div>
     <div class="header-right">
+      <a class="crm-link" href="crm.html">
+        Open CRM
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
       <div class="sync-pill"><span class="sync-dot"></span><span id="syncText">Live</span></div>
       <button class="refresh-btn" id="refreshBtn">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 2v6h-6M3 22v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L21 8M20.5 15a9 9 0 0 1-14.9 3.4L3 16"/></svg>
