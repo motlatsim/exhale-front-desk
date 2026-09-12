@@ -484,7 +484,12 @@ function showApp(){
   document.getElementById("app").classList.add("open");
   boot();
 }
-if(sessionStorage.getItem("exhale_crm_key")) showApp();
+function showGateAgain(msg){
+  document.getElementById("app").classList.remove("open");
+  document.getElementById("gate").style.display = "flex";
+  document.getElementById("gateError").textContent = msg || "";
+}
+if(localStorage.getItem("exhale_crm_key")) showApp();
 document.getElementById("gateForm").addEventListener("submit", async e => {
   e.preventDefault();
   const val = document.getElementById("gatePassword").value;
@@ -499,7 +504,7 @@ document.getElementById("gateForm").addEventListener("submit", async e => {
     });
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || "Incorrect password");
-    sessionStorage.setItem("exhale_crm_key", data.key);
+    localStorage.setItem("exhale_crm_key", data.key);
     showApp();
   }catch(err){
     errEl.textContent = err.message === "Incorrect password." ? "Incorrect password" : "Couldn't reach the server — try again.";
@@ -666,14 +671,18 @@ function normalize(e){
 }
 
 /* apiFetch attaches the session key handed out by crm-auth.js and bounces
-   back to the gate if the server ever rejects it (key rotated, expired). */
+   back to the gate in place (no page reload — a reload here on a
+   persistently-stale key was causing a refresh loop) if the server
+   ever rejects it. localStorage rather than sessionStorage: mobile
+   Safari can drop sessionStorage across app-switches, which was
+   kicking people back to the gate mid-session. */
 async function apiFetch(url, opts){
   opts = opts || {};
-  opts.headers = Object.assign({ "x-crm-key": sessionStorage.getItem("exhale_crm_key") || "" }, opts.headers || {});
+  opts.headers = Object.assign({ "x-crm-key": localStorage.getItem("exhale_crm_key") || "" }, opts.headers || {});
   const res = await fetch(url, opts);
   if(res.status === 401){
-    sessionStorage.removeItem("exhale_crm_key");
-    location.reload();
+    localStorage.removeItem("exhale_crm_key");
+    showGateAgain("Session expired — please log in again.");
     throw new Error("Session expired — please log in again.");
   }
   return res;

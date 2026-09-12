@@ -370,7 +370,12 @@ function showApp(){
   document.getElementById("gate").style.display = "none";
   document.querySelector(".shell").style.display = "flex";
 }
-if(sessionStorage.getItem("exhale_crm_key")){
+function showGateAgain(msg){
+  document.querySelector(".shell").style.display = "none";
+  document.getElementById("gate").style.display = "flex";
+  document.getElementById("gateError").textContent = msg || "";
+}
+if(localStorage.getItem("exhale_crm_key")){
   showApp();
 }
 document.getElementById("gateForm").addEventListener("submit", async (e) => {
@@ -387,7 +392,7 @@ document.getElementById("gateForm").addEventListener("submit", async (e) => {
     });
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || "Incorrect password");
-    sessionStorage.setItem("exhale_crm_key", data.key);
+    localStorage.setItem("exhale_crm_key", data.key);
     showApp();
   }catch(err){
     errEl.textContent = err.message === "Incorrect password." ? "Incorrect password" : "Couldn't reach the server — try again.";
@@ -397,13 +402,18 @@ document.getElementById("gateForm").addEventListener("submit", async (e) => {
   }
 });
 
+/* localStorage rather than sessionStorage: mobile Safari can drop
+   sessionStorage across app-switches, which was kicking people back
+   to the gate mid-session. On a 401 we reset the UI in place instead
+   of reloading — a reload here on a persistently-stale key was
+   causing a refresh loop. */
 async function apiFetch(url, opts){
   opts = opts || {};
-  opts.headers = Object.assign({ "x-crm-key": sessionStorage.getItem("exhale_crm_key") || "" }, opts.headers || {});
+  opts.headers = Object.assign({ "x-crm-key": localStorage.getItem("exhale_crm_key") || "" }, opts.headers || {});
   const res = await fetch(url, opts);
   if(res.status === 401){
-    sessionStorage.removeItem("exhale_crm_key");
-    location.reload();
+    localStorage.removeItem("exhale_crm_key");
+    showGateAgain("Session expired — please log in again.");
     throw new Error("Session expired — please log in again.");
   }
   return res;
