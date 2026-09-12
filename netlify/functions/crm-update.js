@@ -12,7 +12,19 @@ const VALID_INTERESTS = ["Tombstones", "Plaques", "Grave Restorations", "Memoria
 const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
 const VALID_PAYMENT_OPTIONS = ["Laybuy", "Credit", "Insurance Policy", "Once-off Settlement"];
 const VALID_CREDIT_STATUSES = ["Not Applied", "Applied", "Approved", "Declined", "Active", "Settled"];
+const VALID_SIGNOFF_STATUSES = ["Not Sent", "Sent", "Approved", "Changes Requested"];
 const { requireKey } = require("./_require-key");
+
+// Notion caps a single rich_text block at 2000 chars; split longer JSON
+// blobs (like Proposal Items) across multiple blocks instead of truncating.
+function chunkedRichText(content, chunkSize = 1900) {
+  const text = String(content);
+  const blocks = [];
+  for (let i = 0; i < text.length; i += chunkSize) {
+    blocks.push({ text: { content: text.slice(i, i + chunkSize) } });
+  }
+  return blocks.length ? blocks : [{ text: { content: "" } }];
+}
 
 exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
@@ -145,6 +157,15 @@ exports.handler = async function (event) {
   }
   if (data.installments !== undefined) {
     properties["Installments"] = { rich_text: [{ text: { content: String(data.installments).slice(0, 2000) } }] };
+  }
+  if (data.proposal_items !== undefined) {
+    properties["Proposal Items"] = { rich_text: chunkedRichText(data.proposal_items) };
+  }
+  if (data.signoff_token !== undefined) {
+    properties["Signoff Token"] = { rich_text: [{ text: { content: String(data.signoff_token).slice(0, 200) } }] };
+  }
+  if (data.signoff_status !== undefined && VALID_SIGNOFF_STATUSES.includes(data.signoff_status)) {
+    properties["Signoff Status"] = { select: { name: data.signoff_status } };
   }
 
   if (Object.keys(properties).length === 0) {

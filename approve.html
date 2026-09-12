@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Approve your design — Exhale Memorials</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate:#2B2D37; --green:#20C997; --green-deep:#128267; --cream:#F3EEE8;
+    --card:#FFFFFF; --ink:#2B2D37; --ink-soft:#6B6F7B; --hairline:#E7E2D8;
+    --rust:#B5493A; --rust-pale:#F5E1DD; --panel:#FBF8F4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Nunito',sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:520px;margin:0 auto;padding:28px 20px 60px}
+  .brand{display:flex;align-items:center;gap:8px;margin-bottom:22px}
+  .brand-word{font-family:'Poppins',sans-serif;font-weight:800;font-size:20px;color:var(--slate)}
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:22px 20px;margin-bottom:16px}
+  .kicker{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--green-deep)}
+  h1{font-family:'Poppins',sans-serif;font-size:21px;font-weight:700;margin:6px 0 2px}
+  .sub{font-size:13.5px;color:var(--ink-soft);line-height:1.6}
+  .spec{font-size:13.5px;line-height:1.6;margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline)}
+  .gallery{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .gallery img{width:100%;height:150px;object-fit:cover;border-radius:10px;border:1px solid var(--hairline);cursor:zoom-in}
+  .gallery.one{grid-template-columns:1fr}
+  .gallery.one img{height:260px}
+  .lightbox{position:fixed;inset:0;background:rgba(20,20,24,.9);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:100%;max-height:90vh;border-radius:10px}
+  textarea{width:100%;min-height:70px;border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:13.5px;font-family:inherit;background:var(--panel);color:var(--ink);resize:vertical;margin-top:10px}
+  .actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+  button{font-family:inherit;border:none;cursor:pointer;padding:14px 16px;border-radius:11px;font-weight:800;font-size:14px}
+  .btn-approve{background:var(--green);color:#0E2A20}
+  .btn-changes{background:var(--panel);border:1px solid var(--hairline);color:var(--ink)}
+  button:disabled{opacity:.5;cursor:default}
+  .status-banner{border-radius:11px;padding:14px 16px;font-size:13.5px;font-weight:700;margin-bottom:16px}
+  .status-banner.approved{background:#E7F6EF;color:var(--green-deep)}
+  .status-banner.changes{background:var(--rust-pale);color:var(--rust)}
+  .status-banner.sent{background:#EAF2F8;color:#3D6E93}
+  .error{color:var(--rust);font-size:13.5px;text-align:center;padding:40px 0}
+  .footnote{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:20px}
+  .save-note{font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px}
+  .save-note.ok{color:var(--green-deep)}
+  .save-note.err{color:var(--rust)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M28 13 H37.5 V30" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M14 24 H23 V26.5" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span class="brand-word">exhale memorials</span>
+  </div>
+  <div id="content">Loading…</div>
+</div>
+<div class="lightbox" id="lightbox"><img id="lightboxImg"></div>
+
+<script>
+"use strict";
+function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const params = new URLSearchParams(location.search);
+const token = params.get("token") || "";
+const content = document.getElementById("content");
+
+function showLightbox(url){
+  document.getElementById("lightboxImg").src = url;
+  document.getElementById("lightbox").classList.add("open");
+}
+document.getElementById("lightbox").addEventListener("click", () => document.getElementById("lightbox").classList.remove("open"));
+
+async function respond(action){
+  const note = document.getElementById("familyNote") ? document.getElementById("familyNote").value.trim() : "";
+  document.querySelectorAll(".actions button").forEach(b => b.disabled = true);
+  const save = document.getElementById("saveNote");
+  if(save){ save.textContent = "Sending…"; save.className = "save-note"; }
+  try{
+    const res = await fetch("/.netlify/functions/signoff-respond", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token, action, note })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || "Something went wrong.");
+    load();
+  }catch(err){
+    if(save){ save.textContent = err.message; save.className = "save-note err"; }
+    document.querySelectorAll(".actions button").forEach(b => b.disabled = false);
+  }
+}
+
+async function load(){
+  if(!token){
+    content.innerHTML = '<div class="error">This link is missing its code — please ask Exhale Memorials for the link again.</div>';
+    return;
+  }
+  content.innerHTML = "Loading…";
+  try{
+    const res = await fetch("/.netlify/functions/signoff-get?token=" + encodeURIComponent(token));
+    const d = await res.json();
+    if(!res.ok) throw new Error(d.error || "Couldn't load this link.");
+
+    const statusBanner = d.status === "Approved"
+      ? '<div class="status-banner approved">You\'ve approved this design. Thank you — we\'ll take it from here.</div>'
+      : d.status === "Changes Requested"
+      ? '<div class="status-banner changes">We\'ve noted that you\'d like some changes. We\'ll be in touch to go through them.</div>'
+      : '';
+
+    const images = d.images || [];
+    const galleryClass = images.length <= 1 ? "gallery one" : "gallery";
+    const gallery = images.length
+      ? '<div class="' + galleryClass + '">' + images.map(img => '<img src="' + esc(img.url) + '" data-full="' + esc(img.url) + '">').join("") + '</div>'
+      : '<div class="sub" style="margin-top:12px">No design image has been attached yet.</div>';
+
+    const inMemoryOf = d.deceasedName ? "In memory of " + d.deceasedName : "";
+
+    content.innerHTML = statusBanner +
+      '<div class="card">' +
+        '<div class="kicker">Design for your review</div>' +
+        '<h1>' + esc(d.contact || "Hello") + '</h1>' +
+        (inMemoryOf ? '<div class="sub">' + esc(inMemoryOf) + '</div>' : "") +
+        (d.memorialSpec ? '<div class="spec">' + esc(d.memorialSpec) + '</div>' : "") +
+        gallery +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="kicker">Your response</div>' +
+        '<div class="sub" style="margin-top:6px">Let us know if this is right, or if something needs to change.</div>' +
+        '<textarea id="familyNote" placeholder="Anything you\'d like changed (optional)"></textarea>' +
+        '<div class="actions">' +
+          '<button class="btn-approve" id="approveBtn">Approve this design</button>' +
+          '<button class="btn-changes" id="changesBtn">Request changes</button>' +
+        '</div>' +
+        '<div class="save-note" id="saveNote"></div>' +
+      '</div>' +
+      '<div class="footnote">Exhale Memorials · ' + esc(location.hostname) + '</div>';
+
+    document.querySelectorAll(".gallery img").forEach(img => img.addEventListener("click", () => showLightbox(img.dataset.full)));
+    document.getElementById("approveBtn").addEventListener("click", () => respond("approve"));
+    document.getElementById("changesBtn").addEventListener("click", () => respond("changes"));
+  }catch(err){
+    content.innerHTML = '<div class="error">' + esc(err.message) + '</div>';
+  }
+}
+load();
+</script>
+</body>
+</html>

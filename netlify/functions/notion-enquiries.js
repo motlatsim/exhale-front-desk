@@ -86,7 +86,20 @@ exports.handler = async function (event, context) {
         credit_status: (p["Credit Status"] && p["Credit Status"].select && p["Credit Status"].select.name) || "",
         credit_approved_amount: (p["Credit Approved Amount"] && p["Credit Approved Amount"].number) || 0,
         credit_reference: richText("Credit Reference"),
-        installments: richText("Installments")
+        installments: richText("Installments"),
+        proposal_items: richText("Proposal Items"),
+        design_images: ((p["Design Images"] && p["Design Images"].files) || []).map(f => ({
+          name: f.name || "",
+          url: f.file ? f.file.url : (f.external ? f.external.url : "")
+        })).filter(f => f.url),
+        reference_photos: ((p["Reference Photos"] && p["Reference Photos"].files) || []).map(f => ({
+          name: f.name || "",
+          url: f.file ? f.file.url : (f.external ? f.external.url : "")
+        })).filter(f => f.url),
+        signoff_token: richText("Signoff Token"),
+        signoff_status: (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "",
+        signoff_date: richText("Signoff Date"),
+        signoff_note: richText("Signoff Note")
       };
     });
 

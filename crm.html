@@ -311,6 +311,42 @@
   .inst-summary.warn{color:var(--rust);font-weight:700}
   .modal-actions{display:flex;gap:10px;align-items:center;margin-top:16px}
 
+  /* Proposal line items */
+  .prop-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+  .prop-row input{padding:9px 10px;border-radius:8px;border:1px solid var(--hairline);font-size:13px;background:var(--panel);color:var(--ink)}
+  .prop-row .prop-name{flex:1 1 160px;min-width:110px}
+  .prop-row .prop-desc{flex:1 1 160px;min-width:110px;color:var(--ink-soft)}
+  .prop-row .prop-qty{flex:0 0 60px}
+  .prop-row .prop-price{flex:0 0 110px}
+  .prop-row .prop-line-total{flex:0 0 90px;text-align:right;font-weight:700;font-size:13px}
+  .prop-remove{border:none;background:none;color:var(--rust);font-size:12px;font-weight:700;cursor:pointer;padding:6px 4px}
+  .prop-total{display:flex;justify-content:flex-end;gap:10px;font-size:13.5px;font-weight:800;margin-top:8px;padding-top:10px;border-top:1px solid var(--hairline-soft)}
+  .prop-actions{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+
+  /* Photo galleries */
+  .photo-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+  .photo-thumb{width:82px;height:82px;border-radius:9px;overflow:hidden;border:1px solid var(--hairline)}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .photo-add{width:82px;height:82px;border:1px dashed var(--hairline);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft);cursor:pointer;text-align:center;padding:6px;line-height:1.3}
+  .photo-add.uploading{opacity:.5;pointer-events:none}
+
+  /* Catalog (Settings) */
+  .catalog-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--hairline-soft);padding:10px 0}
+  .catalog-thumb{width:42px;height:42px;border-radius:7px;object-fit:cover;background:var(--panel);flex:0 0 42px}
+  .catalog-row .item{font-size:13px;font-weight:700}
+  .catalog-row .cat{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+  .catalog-row .amt{font-size:13px;font-weight:700;margin-left:auto}
+  .catalog-row.inactive{opacity:.5}
+
+  /* Sign-off */
+  .signoff-link-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .signoff-link-row input{flex:1 1 220px;min-width:160px;padding:9px 10px;border-radius:8px;border:1px solid var(--hairline);font-size:12.5px;background:var(--panel);color:var(--ink)}
+  .signoff-badge{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;display:inline-block}
+  .signoff-badge.sent{background:#EAF2F8;color:#5B8CC9}
+  .signoff-badge.approved{background:#E7F6EF;color:#128267}
+  .signoff-badge.changes{background:#FBEDE9;color:#B5493A}
+  .signoff-badge.notsent{background:var(--panel);color:var(--ink-soft)}
+
   @media (max-width:860px){
     .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s;z-index:80}
     .sidebar.open{transform:translateX(0)}
@@ -472,6 +508,44 @@
   </div>
 </div>
 
+<div class="overlay" id="catalogOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="catalogModalTitle">Catalog item</div>
+      <button class="modal-close" id="catalogClose">×</button>
+    </div>
+    <div class="field"><label>Name *</label><input id="ciName"></div>
+    <div class="field-row">
+      <div class="field"><label>Category</label>
+        <select id="ciCategory"><option>Tombstones</option><option>Plaques</option><option>Grave Restorations</option><option>Memorial Books</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Price (R)</label><input type="number" id="ciPrice"></div>
+    </div>
+    <div class="field"><label>Description</label><textarea id="ciDescription" placeholder="What's included"></textarea></div>
+    <div class="field"><label><input type="checkbox" id="ciActive" style="width:auto;margin-right:6px" checked>Active — shown when adding a proposal item</label></div>
+    <div class="field" id="ciPhotoField" style="display:none">
+      <label>Photo</label>
+      <div class="photo-grid" id="ciPhotoGrid"></div>
+      <label class="btn-ghost" style="display:inline-block;margin-top:8px;cursor:pointer">Upload photo<input type="file" accept="image/*" id="ciPhotoInput" hidden></label>
+      <span class="save-status" id="ciPhotoStatus"></span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-accent" id="catalogSaveBtn">Save item</button>
+      <span class="save-status" id="catalogStatus"></span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="catalogPickerOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Add from catalog</div>
+      <button class="modal-close" id="catalogPickerClose">×</button>
+    </div>
+    <div id="catalogPickerList"></div>
+  </div>
+</div>
+
 <div id="printDoc">
   <div class="doc-toolbar">
     <button class="doc-close" id="docCloseBtn">Close</button>
@@ -568,7 +642,7 @@ const NAV = [
 ];
 
 /* ---------- State ---------- */
-const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"" };
+const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null };
 
 /* ---------- Helpers ---------- */
 function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -671,6 +745,13 @@ function normalize(e){
     creditApprovedAmount: Number(e.credit_approved_amount) || 0,
     creditReference: e.credit_reference || "",
     installments: (function(){ try{ return JSON.parse(e.installments || "[]"); }catch(err){ return []; } })(),
+    proposalItems: (function(){ try{ return JSON.parse(e.proposal_items || "[]"); }catch(err){ return []; } })(),
+    designImages: e.design_images || [],
+    referencePhotos: e.reference_photos || [],
+    signoffToken: e.signoff_token || "",
+    signoffStatus: e.signoff_status || "",
+    signoffDate: e.signoff_date || "",
+    signoffNote: e.signoff_note || "",
     submittedAt: submitted,
     updatedAt: e.updated_at || submitted,
     days: daysSince(submitted) || 0,
@@ -727,6 +808,17 @@ async function loadConversations(){
   }
 }
 
+async function loadCatalog(){
+  try{
+    const resp = await apiFetch("/.netlify/functions/catalog-list");
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || "Catalog error " + resp.status);
+    state.catalog = data.items || [];
+  }catch(err){
+    state.catalog = [];
+  }
+}
+
 async function loadAll(){
   const banner = document.getElementById("errorBanner");
   banner.classList.remove("show");
@@ -737,6 +829,7 @@ async function loadAll(){
     banner.classList.add("show");
   }
   await loadConversations();
+  await loadCatalog();
   render();
 }
 
@@ -748,6 +841,31 @@ async function updateCase(id, patch){
   });
   const data = await res.json();
   if(!res.ok || !data.success) throw new Error(data.error || "Update failed");
+  return data;
+}
+
+async function saveCatalogItem(item){
+  const res = await apiFetch("/.netlify/functions/catalog-save", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(item)
+  });
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || "Save failed");
+  return data;
+}
+
+/* Uploads straight into a Notion Files property via notion-upload-file.js.
+   idsProperty is omitted for a full-replace (single photo); passed for an
+   append-only gallery (design images / reference photos). */
+async function uploadFile(pageId, property, idsProperty, file){
+  const form = new FormData();
+  form.append("file", file);
+  form.append("page_id", pageId);
+  form.append("property", property);
+  if(idsProperty) form.append("ids_property", idsProperty);
+  const res = await apiFetch("/.netlify/functions/notion-upload-file", { method:"POST", body: form });
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || "Upload failed");
   return data;
 }
 
@@ -1288,12 +1406,6 @@ function setToggle(key, val){ localStorage.setItem("exhale_crm_toggle_" + key, v
 
 function renderSettings(){
   const el = document.getElementById("screen-settings");
-  const priceList = [
-    { item:"Granite double", note:"Includes base, letters and install", price:"from " + ZAR(22000) },
-    { item:"Granite single", note:"Includes base, letters and install", price:"from " + ZAR(15500) },
-    { item:"Bronze plaque", note:"Up to 60 characters", price:"from " + ZAR(3600) },
-    { item:"Memorial book", note:"24pp, hard cover, soft-touch", price:"from " + ZAR(2900) }
-  ];
   el.innerHTML = '<div class="settings-grid">' +
     '<section class="panel" style="padding:18px">' +
       '<h2 class="h2" style="font-size:15px">Pipeline stages</h2>' +
@@ -1304,11 +1416,18 @@ function renderSettings(){
     '</section>' +
     '<div style="display:flex;flex-direction:column;gap:16px">' +
       '<section class="panel" style="padding:18px">' +
-        '<h2 class="h2" style="font-size:15px">Price list</h2>' +
-        '<div style="font-size:11.5px;color:var(--ink-soft);margin-top:3px">Reference only — quote each family in the drawer.</div>' +
-        '<div style="margin-top:14px">' + priceList.map(p =>
-          '<div class="price-row"><div><div class="item">' + esc(p.item) + '</div><div class="note">' + esc(p.note) + '</div></div><div class="amt">' + p.price + '</div></div>'
-        ).join("") + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<h2 class="h2" style="font-size:15px">Catalog</h2>' +
+          '<button class="btn-ghost" id="addCatalogItemBtn">+ Add item</button>' +
+        '</div>' +
+        '<div style="font-size:11.5px;color:var(--ink-soft);margin-top:3px">What families can choose from when a proposal is built.</div>' +
+        '<div style="margin-top:10px">' + (state.catalog.length ? state.catalog.map(item =>
+          '<div class="catalog-row' + (item.active ? "" : " inactive") + '" data-edit="' + esc(item.id) + '">' +
+            (item.photoUrl ? '<img class="catalog-thumb" src="' + esc(item.photoUrl) + '">' : '<div class="catalog-thumb"></div>') +
+            '<div><div class="item">' + esc(item.name) + '</div><div class="cat">' + esc(item.category || "—") + (item.active ? "" : " · inactive") + '</div></div>' +
+            '<div class="amt">' + ZAR(item.price) + '</div>' +
+          '</div>'
+        ).join("") : '<div class="empty-state" style="padding:16px 0">No catalog items yet — add the first one.</div>') + '</div>' +
       '</section>' +
       '<section class="panel" style="padding:18px">' +
         '<h2 class="h2" style="font-size:15px">Towns we serve</h2>' +
@@ -1330,7 +1449,75 @@ function renderSettings(){
       renderSettings();
     });
   });
+  document.getElementById("addCatalogItemBtn").addEventListener("click", () => openCatalogModal(null));
+  el.querySelectorAll("[data-edit]").forEach(row => row.addEventListener("click", () => openCatalogModal(row.dataset.edit)));
 }
+
+/* ---------- Catalog modal (Settings) ---------- */
+function openCatalogModal(id){
+  const item = id ? state.catalog.find(x => x.id === id) : null;
+  state.catalogEditingId = id || null;
+  document.getElementById("catalogModalTitle").textContent = item ? "Edit catalog item" : "New catalog item";
+  document.getElementById("ciName").value = item ? item.name : "";
+  document.getElementById("ciCategory").value = item ? item.category || "Tombstones" : "Tombstones";
+  document.getElementById("ciPrice").value = item ? item.price || "" : "";
+  document.getElementById("ciDescription").value = item ? item.description : "";
+  document.getElementById("ciActive").checked = item ? item.active !== false : true;
+  document.getElementById("catalogStatus").textContent = "";
+  const photoField = document.getElementById("ciPhotoField");
+  photoField.style.display = item ? "block" : "none";
+  renderCatalogPhotoGrid(item);
+  document.getElementById("catalogOverlay").classList.add("open");
+}
+function closeCatalogModal(){ document.getElementById("catalogOverlay").classList.remove("open"); }
+function renderCatalogPhotoGrid(item){
+  const grid = document.getElementById("ciPhotoGrid");
+  grid.innerHTML = (item && item.photoUrl) ? '<div class="photo-thumb"><img src="' + esc(item.photoUrl) + '"></div>' : "";
+}
+document.getElementById("catalogClose").addEventListener("click", closeCatalogModal);
+document.getElementById("catalogOverlay").addEventListener("click", e => { if(e.target.id === "catalogOverlay") closeCatalogModal(); });
+document.getElementById("catalogSaveBtn").addEventListener("click", async () => {
+  const status = document.getElementById("catalogStatus");
+  const name = document.getElementById("ciName").value.trim();
+  if(!name){ status.textContent = "Name is required."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    const data = await saveCatalogItem({
+      id: state.catalogEditingId || undefined,
+      name,
+      category: document.getElementById("ciCategory").value,
+      price: document.getElementById("ciPrice").value,
+      description: document.getElementById("ciDescription").value.trim(),
+      active: document.getElementById("ciActive").checked
+    });
+    state.catalogEditingId = data.id;
+    await loadCatalog();
+    renderSettings();
+    document.getElementById("ciPhotoField").style.display = "block";
+    renderCatalogPhotoGrid(state.catalog.find(x => x.id === data.id));
+    status.textContent = "";
+    document.getElementById("catalogStatus").textContent = "Saved ✓";
+    document.getElementById("catalogStatus").className = "save-status ok";
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+});
+document.getElementById("ciPhotoInput").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if(!file || !state.catalogEditingId) return;
+  const status = document.getElementById("ciPhotoStatus");
+  status.textContent = "Uploading…"; status.className = "save-status";
+  try{
+    await uploadFile(state.catalogEditingId, "Photo", null, file);
+    await loadCatalog();
+    renderCatalogPhotoGrid(state.catalog.find(x => x.id === state.catalogEditingId));
+    status.textContent = "Uploaded ✓"; status.className = "save-status ok";
+  }catch(err){
+    status.textContent = "Couldn't upload: " + err.message; status.className = "save-status err";
+  }
+  e.target.value = "";
+});
 
 /* ---------- Drawer ---------- */
 function openDrawer(id){ state.drawer = id; renderDrawer(); document.getElementById("drawerOverlay").classList.add("open"); }
@@ -1390,7 +1577,9 @@ function renderDrawer(){
         '</div>' +
         '<div class="field"><label>Memorial spec</label><textarea id="fMemorialSpec" placeholder="Material, size, finish, wording, engraving — e.g. granite double, black polished, sandblast-engraved lettering">' + esc(c.memorialSpec) + '</textarea></div>' +
         '<div class="field-row">' +
-          '<div class="field"><label>Value quoted (R)</label><input type="number" id="fValue" value="' + (c.value || "") + '"></div>' +
+          '<div class="field"><label>Value quoted (R)</label><input type="number" id="fValue" value="' + (c.value || "") + '">' +
+            (c.proposalItems.length ? '<div style="font-size:11px;color:var(--ink-soft);margin-top:4px">Auto-filled from the proposal below</div>' : "") +
+          '</div>' +
           '<div class="field"><label>Paid so far (R)</label><input type="number" id="fPaid" value="' + (c.paid || "") + '"></div>' +
         '</div>' +
         '<div class="field-row">' +
@@ -1399,6 +1588,33 @@ function renderDrawer(){
           '</select></div>' +
           '<div class="field"><label>Payment plan detail</label><input id="fPaymentPlan" value="' + esc(c.paymentPlan) + '" placeholder="e.g. Three parts · next 30 Sep"></div>' +
         '</div>' +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Proposal</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Every design and request the family has asked for — these become the line items on the estimate.</div>' +
+        '<div id="proposalBody"></div>' +
+        '<div class="prop-actions">' +
+          '<button class="btn-ghost" id="addProposalCustomBtn">+ Add custom item</button>' +
+          '<button class="btn-ghost" id="addProposalCatalogBtn">+ Add from catalog</button>' +
+        '</div>' +
+        '<div class="prop-total" id="proposalTotal"></div>' +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Design &amp; reference photos</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px">Design images — what we\'ll show the family for sign-off.</div>' +
+        '<div class="photo-grid" id="designPhotoGrid"></div>' +
+        '<label class="photo-add" id="designPhotoAdd" style="margin-top:6px">+ Add<input type="file" accept="image/*" id="designPhotoInput" hidden></label>' +
+        '<span class="save-status" id="designPhotoStatus"></span>' +
+        '<div style="height:1px;background:var(--hairline-soft);margin:16px 0"></div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px">Reference photos — what the family sent us for a custom design.</div>' +
+        '<div class="photo-grid" id="refPhotoGrid"></div>' +
+        '<label class="photo-add" id="refPhotoAdd" style="margin-top:6px">+ Add<input type="file" accept="image/*" id="refPhotoInput" hidden></label>' +
+        '<span class="save-status" id="refPhotoStatus"></span>' +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Design sign-off</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">The family approves the design themselves, from their phone — no login needed.</div>' +
+        renderSignoffPanel(c) +
       '</div>' +
       '<div class="panel" style="padding:16px 18px">' +
         '<div class="h2" style="font-size:14px;margin-bottom:12px">Deceased information</div>' +
@@ -1469,6 +1685,24 @@ function renderDrawer(){
     });
   }
 
+  renderProposalRows(c.proposalItems || []);
+  document.getElementById("addProposalCustomBtn").addEventListener("click", () => {
+    const list = readProposalItemsFromDOM();
+    list.push({ name:"", description:"", qty:1, price:0 });
+    renderProposalRows(list);
+  });
+  document.getElementById("addProposalCatalogBtn").addEventListener("click", () => openCatalogPicker());
+
+  renderPhotoGrid("designPhotoGrid", c.designImages);
+  renderPhotoGrid("refPhotoGrid", c.referencePhotos);
+  document.getElementById("designPhotoInput").addEventListener("change", e => handlePhotoUpload(c, "designPhotoInput", "designPhotoStatus", "Design Images", "Design Images Ids"));
+  document.getElementById("refPhotoInput").addEventListener("change", e => handlePhotoUpload(c, "refPhotoInput", "refPhotoStatus", "Reference Photos", "Reference Photos Ids"));
+
+  const sendSignoffBtn = document.getElementById("sendSignoffBtn");
+  if(sendSignoffBtn) sendSignoffBtn.addEventListener("click", () => sendForSignoff(c));
+  const copySignoffBtn = document.getElementById("copySignoffBtn");
+  if(copySignoffBtn) copySignoffBtn.addEventListener("click", () => copySignoffLink(c));
+
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   document.getElementById("viewEstimateBtn").addEventListener("click", () => viewDocument(c, "Estimate"));
   document.getElementById("viewInvoiceBtn").addEventListener("click", () => viewDocument(c, "Invoice"));
@@ -1520,6 +1754,11 @@ function renderDrawer(){
       installmentsList = readInstallmentsFromDOM();
       patch.installments = JSON.stringify(installmentsList);
     }
+    const proposalList = readProposalItemsFromDOM().filter(i => i.name.trim());
+    patch.proposal_items = JSON.stringify(proposalList);
+    if(proposalList.length){
+      patch.quoted_value = proposalList.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.price)||0), 0);
+    }
     if(document.getElementById("fCreditProvider")){
       patch.credit_provider = document.getElementById("fCreditProvider").value.trim();
       patch.credit_status = document.getElementById("fCreditStatus").value;
@@ -1544,6 +1783,7 @@ function renderDrawer(){
         landmark: patch.landmark, siteAccess: patch.site_access, locationPin: patch.location_pin
       });
       if(installmentsList) c.installments = installmentsList;
+      c.proposalItems = proposalList;
       if(patch.credit_provider !== undefined){
         Object.assign(c, {
           creditProvider: patch.credit_provider, creditStatus: patch.credit_status,
@@ -1600,6 +1840,140 @@ function updateInstSummary(list, quotedValue){
   summary.className = "inst-summary" + (diff !== 0 ? " warn" : "");
 }
 
+/* ---------- Proposal line items ---------- */
+function readProposalItemsFromDOM(){
+  return Array.from(document.querySelectorAll("#proposalBody .prop-row")).map(row => ({
+    name: row.querySelector(".prop-name").value,
+    description: row.querySelector(".prop-desc").value,
+    qty: Number(row.querySelector(".prop-qty").value) || 0,
+    price: Number(row.querySelector(".prop-price").value) || 0
+  }));
+}
+function renderProposalRows(list){
+  const body = document.getElementById("proposalBody");
+  body.innerHTML = list.length ? list.map((item, i) =>
+    '<div class="prop-row" data-i="' + i + '">' +
+      '<input class="prop-name" placeholder="Item" value="' + esc(item.name || "") + '">' +
+      '<input class="prop-desc" placeholder="Detail (optional)" value="' + esc(item.description || "") + '">' +
+      '<input type="number" class="prop-qty" placeholder="Qty" value="' + (item.qty || 1) + '">' +
+      '<input type="number" class="prop-price" placeholder="Unit price (R)" value="' + (item.price || "") + '">' +
+      '<span class="prop-line-total">' + ZAR((Number(item.qty)||0) * (Number(item.price)||0)) + '</span>' +
+      '<button type="button" class="prop-remove" data-i="' + i + '">Remove</button>' +
+    '</div>'
+  ).join("") : '<div class="empty-state" style="padding:10px 0">No proposal items yet.</div>';
+
+  body.querySelectorAll(".prop-remove").forEach(btn => btn.addEventListener("click", () => {
+    const updated = readProposalItemsFromDOM();
+    updated.splice(Number(btn.dataset.i), 1);
+    renderProposalRows(updated);
+  }));
+  body.querySelectorAll(".prop-name, .prop-desc, .prop-qty, .prop-price").forEach(el => el.addEventListener("change", () => {
+    renderProposalRows(readProposalItemsFromDOM());
+  }));
+  updateProposalTotal(list);
+}
+function updateProposalTotal(list){
+  const totalEl = document.getElementById("proposalTotal");
+  const total = list.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.price)||0), 0);
+  totalEl.innerHTML = '<span>Proposal total</span><span>' + ZAR(total) + '</span>';
+  const fValue = document.getElementById("fValue");
+  if(fValue && list.length) fValue.value = total;
+}
+
+/* ---------- Catalog picker (drawer) ---------- */
+function openCatalogPicker(){
+  const list = document.getElementById("catalogPickerList");
+  const active = state.catalog.filter(i => i.active !== false);
+  list.innerHTML = active.length ? active.map(item =>
+    '<div class="catalog-row" data-pick="' + esc(item.id) + '" style="cursor:pointer">' +
+      (item.photoUrl ? '<img class="catalog-thumb" src="' + esc(item.photoUrl) + '">' : '<div class="catalog-thumb"></div>') +
+      '<div><div class="item">' + esc(item.name) + '</div><div class="cat">' + esc(item.category || "—") + '</div></div>' +
+      '<div class="amt">' + ZAR(item.price) + '</div>' +
+    '</div>'
+  ).join("") : '<div class="empty-state">No active catalog items yet — add some in Settings.</div>';
+  list.querySelectorAll("[data-pick]").forEach(row => row.addEventListener("click", () => {
+    const item = state.catalog.find(x => x.id === row.dataset.pick);
+    const current = readProposalItemsFromDOM();
+    current.push({ name: item.name, description: item.description || "", qty: 1, price: item.price });
+    renderProposalRows(current);
+    document.getElementById("catalogPickerOverlay").classList.remove("open");
+  }));
+  document.getElementById("catalogPickerOverlay").classList.add("open");
+}
+document.getElementById("catalogPickerClose").addEventListener("click", () => document.getElementById("catalogPickerOverlay").classList.remove("open"));
+document.getElementById("catalogPickerOverlay").addEventListener("click", e => { if(e.target.id === "catalogPickerOverlay") document.getElementById("catalogPickerOverlay").classList.remove("open"); });
+
+/* ---------- Design / reference photos ---------- */
+function renderPhotoGrid(gridId, photos){
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = (photos || []).map(p => '<div class="photo-thumb"><img src="' + esc(p.url) + '"></div>').join("");
+}
+async function handlePhotoUpload(c, inputId, statusId, property, idsProperty){
+  const input = document.getElementById(inputId);
+  const file = input.files[0];
+  if(!file) return;
+  const status = document.getElementById(statusId);
+  status.textContent = "Uploading…"; status.className = "save-status";
+  try{
+    await uploadFile(c.id, property, idsProperty, file);
+    await loadCases();
+    render();
+    renderDrawer();
+  }catch(err){
+    status.textContent = "Couldn't upload: " + err.message;
+    status.className = "save-status err";
+    input.value = "";
+  }
+}
+
+/* ---------- Design sign-off ----------
+   The family reviews and approves from their own phone via a long random
+   token in the link — see approve.html and signoff-get/respond.js. No
+   login for them; access control is the token itself. */
+function renderSignoffPanel(c){
+  if(!c.signoffToken){
+    return '<div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">' +
+        (c.designImages.length ? "Not sent yet." : "Upload a design image above first.") +
+      '</div>' +
+      '<button class="btn-ghost" id="sendSignoffBtn"' + (c.designImages.length ? "" : " disabled") + '>Send for sign-off</button>';
+  }
+  const link = location.origin + "/approve.html?token=" + encodeURIComponent(c.signoffToken);
+  const statusClass = c.signoffStatus === "Approved" ? "approved" : (c.signoffStatus === "Changes Requested" ? "changes" : "sent");
+  return '<span class="signoff-badge ' + statusClass + '">' + esc(c.signoffStatus || "Sent") + '</span>' +
+    (c.signoffDate ? '<span style="font-size:11.5px;color:var(--ink-soft);margin-left:8px">' + fmtDateISO(c.signoffDate) + '</span>' : "") +
+    (c.signoffNote ? '<div style="font-size:12.5px;margin-top:8px;padding:10px 12px;background:var(--panel);border-radius:8px">"' + esc(c.signoffNote) + '"</div>' : "") +
+    '<div class="signoff-link-row">' +
+      '<input readonly value="' + esc(link) + '" onclick="this.select()">' +
+      '<button class="btn-ghost" id="copySignoffBtn">Copy link</button>' +
+      '<button class="btn-ghost" id="sendSignoffBtn">Send again</button>' +
+    '</div>';
+}
+function generateSignoffToken(){
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+}
+async function sendForSignoff(c){
+  const token = c.signoffToken || generateSignoffToken();
+  try{
+    await updateCase(c.id, { signoff_token: token, signoff_status: "Sent" });
+    c.signoffToken = token; c.signoffStatus = "Sent";
+    renderDrawer();
+  }catch(err){
+    alert("Couldn't send for sign-off — try again.");
+  }
+}
+function copySignoffLink(c){
+  const link = location.origin + "/approve.html?token=" + encodeURIComponent(c.signoffToken);
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).catch(() => {});
+  const btn = document.getElementById("copySignoffBtn");
+  if(btn){
+    const orig = btn.textContent;
+    btn.textContent = "Copied ✓";
+    setTimeout(() => { if(document.body.contains(btn)) btn.textContent = orig; }, 1500);
+  }
+}
+
 /* ---------- Estimate / invoice documents ---------- */
 function addDays(iso, days){
   const d = new Date(iso + "T00:00:00");
@@ -1646,8 +2020,29 @@ function renderPrintDoc(c, type){
   const num = isInvoice ? c.invoiceNumber : c.estimateNumber;
   const dateIso = isInvoice ? c.invoiceDate : c.estimateDate;
   const dueIso = addDays(dateIso, isInvoice ? 7 : 14);
-  const due = c.value - c.paid;
   const itemDesc = c.memorialSpec || (c.interest + (c.deceasedName ? " for the late " + c.deceasedName : ""));
+  const items = (c.proposalItems || []).filter(i => i.name && i.name.trim());
+  const docTotal = items.length ? items.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.price)||0), 0) : c.value;
+  const due = docTotal - c.paid;
+  const rows = items.length ? items.map((item, i) =>
+    '<tr>' +
+      '<td>' + (i+1) + '</td>' +
+      '<td class="doc-item-name">' + esc(item.name) + '</td>' +
+      '<td>' + esc(item.description || "") + '</td>' +
+      '<td class="right">' + (Number(item.qty)||0) + '</td>' +
+      '<td class="right">' + ZAR(item.price) + '</td>' +
+      '<td class="right">' + ZAR((Number(item.qty)||0) * (Number(item.price)||0)) + '</td>' +
+    '</tr>'
+  ).join("") : (
+    '<tr>' +
+      '<td>1</td>' +
+      '<td class="doc-item-name">' + esc(c.interest) + '</td>' +
+      '<td>' + esc(itemDesc) + '</td>' +
+      '<td class="right">1</td>' +
+      '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
+      '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
+    '</tr>'
+  );
 
   const page = document.getElementById("docPage");
   page.innerHTML =
@@ -1679,17 +2074,10 @@ function renderPrintDoc(c, type){
     '</div>' +
     '<div class="doc-table-wrap"><table class="doc-table">' +
       '<thead><tr><th>#</th><th>Product or service</th><th>Description</th><th class="right">Qty</th><th class="right">Rate</th><th class="right">Amount</th></tr></thead>' +
-      '<tbody><tr>' +
-        '<td>1</td>' +
-        '<td class="doc-item-name">' + esc(c.interest) + '</td>' +
-        '<td>' + esc(itemDesc) + '</td>' +
-        '<td class="right">1</td>' +
-        '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
-        '<td class="right">' + (c.value ? ZAR(c.value) : "—") + '</td>' +
-      '</tr></tbody>' +
+      '<tbody>' + rows + '</tbody>' +
     '</table></div>' +
     '<div class="doc-totals">' +
-      '<div class="doc-total-row"><span>Total</span><span>' + ZAR(c.value) + '</span></div>' +
+      '<div class="doc-total-row"><span>Total</span><span>' + ZAR(docTotal) + '</span></div>' +
       (isInvoice ? (
         '<div class="doc-total-row"><span>Payment</span><span>-' + ZAR(c.paid) + '</span></div>' +
         '<div class="doc-total-row doc-total-bold"><span>Balance due</span><span>' + ZAR(Math.max(0,due)) + '</span></div>' +
