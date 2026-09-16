@@ -13,6 +13,8 @@ const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
 const VALID_PAYMENT_OPTIONS = ["Laybuy", "Credit", "Insurance Policy", "Once-off Settlement"];
 const VALID_CREDIT_STATUSES = ["Not Applied", "Applied", "Approved", "Declined", "Active", "Settled"];
 const VALID_SIGNOFF_STATUSES = ["Not Sent", "Sent", "Approved", "Changes Requested"];
+const VALID_TERRAIN_TYPES = ["Standard Driveway", "4x4 Only", "Rough Gravel", "Rocky Ground"];
+const VALID_GROUND_PROFILES = ["Standard Soil", "Sand/Soft Earth", "Rock Slab"];
 const { requireKey } = require("./_require-key");
 
 // Notion caps a single rich_text block at 2000 chars; split longer JSON
@@ -167,19 +169,72 @@ exports.handler = async function (event) {
   if (data.signoff_status !== undefined && VALID_SIGNOFF_STATUSES.includes(data.signoff_status)) {
     properties["Signoff Status"] = { select: { name: data.signoff_status } };
   }
+  if (data.terrain_type !== undefined) {
+    properties["Terrain Type"] = data.terrain_type && VALID_TERRAIN_TYPES.includes(data.terrain_type) ? { select: { name: data.terrain_type } } : { select: null };
+  }
+  if (data.ground_profile !== undefined) {
+    properties["Ground Profile"] = data.ground_profile && VALID_GROUND_PROFILES.includes(data.ground_profile) ? { select: { name: data.ground_profile } } : { select: null };
+  }
+  if (data.checklist_slab !== undefined) {
+    properties["Checklist Slab"] = { checkbox: !!data.checklist_slab };
+  }
+  if (data.checklist_stencil !== undefined) {
+    properties["Checklist Stencil"] = { checkbox: !!data.checklist_stencil };
+  }
+  if (data.checklist_engraved !== undefined) {
+    properties["Checklist Engraved"] = { checkbox: !!data.checklist_engraved };
+  }
+  if (data.checklist_polished !== undefined) {
+    properties["Checklist Polished"] = { checkbox: !!data.checklist_polished };
+  }
+  if (data.tracker_token !== undefined) {
+    properties["Tracker Token"] = { rich_text: [{ text: { content: String(data.tracker_token).slice(0, 200) } }] };
+  }
 
   if (Object.keys(properties).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "Nothing to update." }) };
   }
 
+  const notionHeaders = {
+    "Authorization": `Bearer ${token}`,
+    "Notion-Version": "2022-06-28",
+    "Content-Type": "application/json"
+  };
+
+  // The 50% deposit + design sign-off gate: stone cutting can't start until
+  // at least half the quote is paid and the family has approved the design.
+  // Enforced here (not just in the UI) since it's a hard business rule.
+  if (properties["Status"] && data.status === "Manufacturing") {
+    try {
+      const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers: notionHeaders });
+      const page = await pageRes.json();
+      if (!pageRes.ok) return { statusCode: pageRes.status, body: JSON.stringify({ error: page.message || "Could not read the family record." }) };
+      const p = page.properties || {};
+      const currentQuoted = (p["Quoted Value"] && p["Quoted Value"].number) || 0;
+      const currentPaid = (p["Amount Paid"] && p["Amount Paid"].number) || 0;
+      const currentSignoff = (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "";
+
+      const quoted = data.quoted_value !== undefined ? Number(data.quoted_value) || 0 : currentQuoted;
+      const paid = data.amount_paid !== undefined ? Number(data.amount_paid) || 0 : currentPaid;
+      const signoff = data.signoff_status !== undefined ? data.signoff_status : currentSignoff;
+
+      const depositMet = quoted > 0 && paid / quoted >= 0.5;
+      const designApproved = signoff === "Approved";
+      if (!depositMet || !designApproved) {
+        const missing = [];
+        if (!depositMet) missing.push(quoted > 0 ? "at least 50% of the quote paid (currently " + Math.round((paid / quoted) * 100) + "%)" : "a quoted value and at least 50% paid");
+        if (!designApproved) missing.push("the family's design sign-off");
+        return { statusCode: 400, body: JSON.stringify({ error: "Can't start manufacturing yet — still needs " + missing.join(" and ") + "." }) };
+      }
+    } catch (err) {
+      return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
   try {
     const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
       method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
+      headers: notionHeaders,
       body: JSON.stringify({ properties })
     });
     const result = await res.json();

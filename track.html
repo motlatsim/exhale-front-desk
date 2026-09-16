@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Track your order — Exhale Memorials</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --slate:#2B2D37; --green:#20C997; --green-deep:#128267; --cream:#F3EEE8;
+    --card:#FFFFFF; --ink:#2B2D37; --ink-soft:#6B6F7B; --hairline:#E7E2D8;
+    --rust:#B5493A; --rust-pale:#F5E1DD; --panel:#FBF8F4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Nunito',sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:520px;margin:0 auto;padding:28px 20px 60px}
+  .brand{display:flex;align-items:center;gap:8px;margin-bottom:22px}
+  .brand-word{font-family:'Poppins',sans-serif;font-weight:800;font-size:20px;color:var(--slate)}
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:22px 20px;margin-bottom:16px}
+  .kicker{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--green-deep)}
+  h1{font-family:'Poppins',sans-serif;font-size:21px;font-weight:700;margin:6px 0 2px}
+  .sub{font-size:13.5px;color:var(--ink-soft);line-height:1.6}
+  .stepper{margin-top:20px}
+  .step{display:flex;gap:12px;position:relative;padding-bottom:20px}
+  .step:last-child{padding-bottom:0}
+  .step-line{position:absolute;left:9px;top:22px;bottom:0;width:2px;background:var(--hairline)}
+  .step:last-child .step-line{display:none}
+  .step-dot{width:20px;height:20px;border-radius:50%;flex:0 0 20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;z-index:1}
+  .step.done .step-dot{background:var(--green);color:#0E2A20}
+  .step.current .step-dot{background:var(--green-deep);color:#fff;box-shadow:0 0 0 4px rgba(18,130,103,.18)}
+  .step.upcoming .step-dot{background:var(--panel);border:1px solid var(--hairline);color:var(--ink-soft)}
+  .step-label{font-size:13.5px;font-weight:700;padding-top:1px}
+  .step.upcoming .step-label{color:var(--ink-soft);font-weight:600}
+  .stat-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--hairline)}
+  .stat-row:last-child{border-bottom:none}
+  .stat-row .lbl{font-size:12.5px;color:var(--ink-soft)}
+  .stat-row .val{font-size:14px;font-weight:800}
+  .balance-ok{color:var(--green-deep)}
+  .balance-due{color:var(--rust)}
+  .lost-banner{background:var(--panel);border-radius:11px;padding:14px 16px;font-size:13.5px;color:var(--ink-soft);text-align:center}
+  .error{color:var(--rust);font-size:13.5px;text-align:center;padding:40px 0}
+  .footnote{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <svg width="20" height="20" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M28 13 H37.5 V30" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M14 24 H23 V26.5" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <span class="brand-word">exhale memorials</span>
+  </div>
+  <div id="content">Loading…</div>
+</div>
+
+<script>
+"use strict";
+function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function ZAR(n){ return "R" + Math.round(n||0).toLocaleString("en-ZA").replace(/,/g," "); }
+function fmtDate(iso){
+  if(!iso) return "—";
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-ZA", { day:"numeric", month:"short", year:"numeric" });
+}
+const params = new URLSearchParams(location.search);
+const token = params.get("token") || "";
+const content = document.getElementById("content");
+
+async function load(){
+  if(!token){
+    content.innerHTML = '<div class="error">This link is missing its code — please ask Exhale Memorials for the link again.</div>';
+    return;
+  }
+  try{
+    const res = await fetch("/.netlify/functions/tracker-get?token=" + encodeURIComponent(token));
+    const d = await res.json();
+    if(!res.ok) throw new Error(d.error || "Couldn't load this link.");
+
+    const inMemoryOf = d.deceasedName ? "In memory of " + d.deceasedName : "";
+
+    let stepperHtml = "";
+    if(d.isLost){
+      stepperHtml = '<div class="lost-banner">This order isn\'t currently active. Please get in touch with Exhale Memorials if you have questions.</div>';
+    }else{
+      stepperHtml = '<div class="stepper">' + d.stages.map((s, i) => {
+        const cls = i < d.stageIndex ? "done" : (i === d.stageIndex ? "current" : "upcoming");
+        return '<div class="step ' + cls + '"><div style="position:relative"><div class="step-dot">' + (i < d.stageIndex ? "✓" : "") + '</div><div class="step-line"></div></div><div class="step-label">' + esc(s) + '</div></div>';
+      }).join("") + '</div>';
+    }
+
+    const balanceClass = d.balance > 0 ? "balance-due" : "balance-ok";
+    const financials = d.quotedValue ? (
+      '<div class="stat-row"><span class="lbl">Total</span><span class="val">' + ZAR(d.quotedValue) + '</span></div>' +
+      '<div class="stat-row"><span class="lbl">Paid so far</span><span class="val">' + ZAR(d.amountPaid) + '</span></div>' +
+      '<div class="stat-row"><span class="lbl">Balance</span><span class="val ' + balanceClass + '">' + (d.balance > 0 ? ZAR(d.balance) : "Paid in full") + '</span></div>' +
+      (d.nextInstallment ? '<div class="stat-row"><span class="lbl">Next installment</span><span class="val">' + fmtDate(d.nextInstallment.due) + ' · ' + ZAR(d.nextInstallment.amount) + '</span></div>' : "")
+    ) : "";
+
+    const dates = (d.unveiling || d.installedDate) ? (
+      (d.unveiling ? '<div class="stat-row"><span class="lbl">Unveiling</span><span class="val">' + esc(d.unveiling) + '</span></div>' : "") +
+      (d.installedDate ? '<div class="stat-row"><span class="lbl">Installed</span><span class="val">' + fmtDate(d.installedDate) + '</span></div>' : "")
+    ) : "";
+
+    content.innerHTML =
+      '<div class="card">' +
+        '<div class="kicker">Order status</div>' +
+        '<h1>' + esc(d.contact || "Hello") + '</h1>' +
+        (inMemoryOf ? '<div class="sub">' + esc(inMemoryOf) + '</div>' : "") +
+        stepperHtml +
+      '</div>' +
+      (financials ? '<div class="card">' + financials + '</div>' : "") +
+      (dates ? '<div class="card">' + dates + '</div>' : "") +
+      '<div class="footnote">Exhale Memorials · ' + esc(location.hostname) + '</div>';
+  }catch(err){
+    content.innerHTML = '<div class="error">' + esc(err.message) + '</div>';
+  }
+}
+load();
+</script>
+</body>
+</html>

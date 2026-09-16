@@ -169,6 +169,10 @@
   .job .prog .fill{height:100%;background:var(--green)}
   .job .owner{font-size:11px;color:var(--ink-soft)}
   .lane-empty{padding:16px;font-size:12px;color:var(--ink-soft)}
+  .checklist-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .chip-check{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 9px;border-radius:20px;border:1px solid var(--hairline);color:var(--ink-soft);cursor:pointer}
+  .chip-check input{width:auto;margin:0}
+  .chip-check.done{background:#E7F6EF;border-color:transparent;color:var(--green-deep)}
 
   /* Calendar */
   .cal-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
@@ -546,6 +550,28 @@
   </div>
 </div>
 
+<div class="overlay" id="paymentOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Log a payment</div>
+      <button class="modal-close" id="paymentClose">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">No cash is taken in the office — every payment routes through the bank or a card terminal, and needs its proof attached here.</div>
+    <div class="field-row">
+      <div class="field"><label>Amount (R) *</label><input type="number" id="payAmount"></div>
+      <div class="field"><label>Date *</label><input type="date" id="payDate"></div>
+    </div>
+    <div class="field"><label>Method</label>
+      <select id="payMethod"></select>
+    </div>
+    <div class="field"><label>Proof (POP / deposit slip / merchant slip) *</label><input type="file" accept="image/*,.pdf" id="payProofInput"></div>
+    <div class="modal-actions">
+      <button class="btn-accent" id="paymentSaveBtn">Log payment</button>
+      <span class="save-status" id="paymentStatus"></span>
+    </div>
+  </div>
+</div>
+
 <div id="printDoc">
   <div class="doc-toolbar">
     <button class="doc-close" id="docCloseBtn">Close</button>
@@ -617,6 +643,15 @@ const TOWNS = ["Lusikisiki","Port St Johns","Flagstaff","Other"];
 const INTERESTS = ["Tombstones","Plaques","Grave Restorations","Memorial Books","Not sure yet"];
 const PAYMENT_OPTIONS = ["Laybuy","Credit","Insurance Policy","Once-off Settlement"];
 const CREDIT_STATUSES = ["Not Applied","Applied","Approved","Declined","Active","Settled"];
+const TERRAIN_TYPES = ["Standard Driveway","4x4 Only","Rough Gravel","Rocky Ground"];
+const GROUND_PROFILES = ["Standard Soil","Sand/Soft Earth","Rock Slab"];
+const PAYMENT_METHODS = ["Bank EFT","Cash at Bank","Speedpoint"];
+const CHECKLIST_STEPS = [
+  { key:"checklistSlab", field:"checklist_slab", label:"Slab cut" },
+  { key:"checklistStencil", field:"checklist_stencil", label:"Stencil" },
+  { key:"checklistEngraved", field:"checklist_engraved", label:"Engraved" },
+  { key:"checklistPolished", field:"checklist_polished", label:"Polished" }
+];
 const BUSINESS = {
   name: "Exhale Memorials",
   addressLines: ["14 Jacaranda Avenue", "Lusikisiki, Eastern Cape, 4820"],
@@ -752,6 +787,13 @@ function normalize(e){
     signoffStatus: e.signoff_status || "",
     signoffDate: e.signoff_date || "",
     signoffNote: e.signoff_note || "",
+    terrainType: e.terrain_type || "",
+    groundProfile: e.ground_profile || "",
+    checklistSlab: !!e.checklist_slab,
+    checklistStencil: !!e.checklist_stencil,
+    checklistEngraved: !!e.checklist_engraved,
+    checklistPolished: !!e.checklist_polished,
+    trackerToken: e.tracker_token || "",
     submittedAt: submitted,
     updatedAt: e.updated_at || submitted,
     days: daysSince(submitted) || 0,
@@ -1129,15 +1171,32 @@ function renderProduction(){
       (jobs.length ? jobs.map(c => {
         const installed = parseLooseDate(c.installedDate);
         const due = installed ? fmtDate(installed) : "—";
+        const showChecklist = lane.stages.includes("Manufacturing");
         return '<div class="job" data-open="' + c.id + '" style="cursor:pointer">' +
           '<div class="job-top"><div class="fam">' + esc(c.family) + '</div><div class="due" style="color:' + (installed && installed-Date.now() < 3*86400000 ? "#B5493A" : "var(--ink-soft)") + '">' + esc(due) + '</div></div>' +
           '<div class="spec">' + esc(wantingLabel(c)) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
-          '<div class="prog"><div class="track"><div class="fill" style="width:' + c.progress + '%"></div></div><div class="owner">' + esc(c.assignedTo || "Unassigned") + '</div></div>' +
+          (showChecklist ?
+            '<div class="checklist-chips" data-checklist="' + c.id + '">' +
+              CHECKLIST_STEPS.map(s => '<label class="chip-check' + (c[s.key] ? " done" : "") + '" data-stop><input type="checkbox" data-checklist-key="' + s.key + '" data-checklist-field="' + s.field + '"' + (c[s.key] ? " checked" : "") + '> ' + s.label + '</label>').join("") +
+            '</div>'
+          : '<div class="prog"><div class="track"><div class="fill" style="width:' + c.progress + '%"></div></div><div class="owner">' + esc(c.assignedTo || "Unassigned") + '</div></div>') +
         '</div>';
       }).join("") : '<div class="lane-empty">Nothing here right now.</div>') +
     '</section>';
   }).join("") + '</div>';
   el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
+  el.querySelectorAll("[data-checklist]").forEach(box => {
+    box.addEventListener("click", e => e.stopPropagation());
+    box.querySelectorAll("[data-checklist-key]").forEach(input => input.addEventListener("change", async () => {
+      const c = state.cases.find(x => x.id === box.dataset.checklist);
+      const key = input.dataset.checklistKey;
+      const prev = c[key];
+      c[key] = input.checked;
+      const patch = {}; patch[input.dataset.checklistField] = input.checked;
+      try{ await updateCase(c.id, patch); render(); }
+      catch(err){ c[key] = prev; input.checked = prev; alert("Couldn't save — try again."); }
+    }));
+  });
 }
 
 /* ---------- Screen: Calendar ---------- */
@@ -1634,7 +1693,33 @@ function renderDrawer(){
           '<div class="field"><label>Finding the grave</label><input id="fLandmark" value="' + esc(c.landmark) + '"></div>' +
           '<div class="field"><label>Site access</label><input id="fSiteAccess" value="' + esc(c.siteAccess) + '" placeholder="e.g. dirt road, 4x4 recommended"></div>' +
         '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Terrain type</label><select id="fTerrainType"><option value="">—</option>' +
+            TERRAIN_TYPES.map(t => '<option value="' + esc(t) + '"' + (t===c.terrainType?" selected":"") + '>' + esc(t) + '</option>').join("") +
+          '</select></div>' +
+          '<div class="field"><label>Ground profile</label><select id="fGroundProfile"><option value="">—</option>' +
+            GROUND_PROFILES.map(g => '<option value="' + esc(g) + '"' + (g===c.groundProfile?" selected":"") + '>' + esc(g) + '</option>').join("") +
+          '</select></div>' +
+        '</div>' +
         '<div class="field"><label>Location pin</label><input id="fLocationPin" value="' + esc(c.locationPin) + '" placeholder="Google Maps link"></div>' +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Production checklist</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Stone cutting can\'t start until the deposit and design sign-off gate below is cleared.</div>' +
+        '<div class="checklist-chips">' +
+          CHECKLIST_STEPS.map(s => '<label class="chip-check' + (c[s.key] ? " done" : "") + '"><input type="checkbox" id="f' + s.key.charAt(0).toUpperCase() + s.key.slice(1) + '"' + (c[s.key] ? " checked" : "") + '> ' + s.label + '</label>').join("") +
+        '</div>' +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Payments</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Every payment needs proof — a POP, deposit slip or Speedpoint slip. No cash is taken in the office.</div>' +
+        '<div id="paymentsBody" class="empty-state" style="padding:14px 0">Loading…</div>' +
+        '<button class="btn-ghost" id="logPaymentBtn" style="margin-top:4px">+ Log a payment</button>' +
+      '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Family tracker link</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">A read-only status page the family can bookmark — stage, balance, and next installment. Share it over WhatsApp.</div>' +
+        renderTrackerPanel(c) +
       '</div>' +
       (c.paymentOption === "Laybuy" ?
         '<div class="panel" style="padding:16px 18px">' +
@@ -1703,14 +1788,35 @@ function renderDrawer(){
   const copySignoffBtn = document.getElementById("copySignoffBtn");
   if(copySignoffBtn) copySignoffBtn.addEventListener("click", () => copySignoffLink(c));
 
+  loadPayments(c);
+  document.getElementById("logPaymentBtn").addEventListener("click", () => openPaymentModal(c));
+
+  const sendTrackerBtn = document.getElementById("sendTrackerBtn");
+  if(sendTrackerBtn) sendTrackerBtn.addEventListener("click", () => sendTrackerLink(c));
+  const copyTrackerBtn = document.getElementById("copyTrackerBtn");
+  if(copyTrackerBtn) copyTrackerBtn.addEventListener("click", () => copyTrackerLink(c));
+
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   document.getElementById("viewEstimateBtn").addEventListener("click", () => viewDocument(c, "Estimate"));
   document.getElementById("viewInvoiceBtn").addEventListener("click", () => viewDocument(c, "Invoice"));
   document.getElementById("drawerStageSelect").addEventListener("change", async e => {
     const newStage = e.target.value, prev = c.stage;
+    if(newStage === "Manufacturing"){
+      const depositPct = c.value > 0 ? Math.round((c.paid / c.value) * 100) : 0;
+      const depositMet = c.value > 0 && c.paid / c.value >= 0.5;
+      const designApproved = c.signoffStatus === "Approved";
+      if(!depositMet || !designApproved){
+        const missing = [];
+        if(!depositMet) missing.push(c.value > 0 ? "at least 50% of the quote paid (currently " + depositPct + "%)" : "a quoted value and at least 50% paid");
+        if(!designApproved) missing.push("the family's design sign-off");
+        alert("Can't start manufacturing yet — still needs " + missing.join(" and ") + ".");
+        e.target.value = prev;
+        return;
+      }
+    }
     c.stage = newStage;
     try{ await updateCase(c.id, { status:newStage }); render(); renderDrawer(); }
-    catch(err){ c.stage = prev; e.target.value = prev; alert("Couldn't move stage — try again."); }
+    catch(err){ c.stage = prev; e.target.value = prev; alert(err.message || "Couldn't move stage — try again."); }
   });
   document.getElementById("logVisitBtn").addEventListener("click", async () => {
     const stamp = new Date().toLocaleString("en-ZA", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
@@ -1747,7 +1853,13 @@ function renderDrawer(){
       plot_number: document.getElementById("fPlotNumber").value.trim(),
       landmark: document.getElementById("fLandmark").value.trim(),
       site_access: document.getElementById("fSiteAccess").value.trim(),
-      location_pin: document.getElementById("fLocationPin").value.trim()
+      terrain_type: document.getElementById("fTerrainType").value,
+      ground_profile: document.getElementById("fGroundProfile").value,
+      location_pin: document.getElementById("fLocationPin").value.trim(),
+      checklist_slab: document.getElementById("fChecklistSlab").checked,
+      checklist_stencil: document.getElementById("fChecklistStencil").checked,
+      checklist_engraved: document.getElementById("fChecklistEngraved").checked,
+      checklist_polished: document.getElementById("fChecklistPolished").checked
     };
     let installmentsList = null;
     if(document.getElementById("installmentsBody")){
@@ -1780,7 +1892,10 @@ function renderDrawer(){
         paymentOption: patch.payment_option, paymentPlan: patch.payment_plan,
         deceasedName: patch.deceased_name, dateOfBirth: patch.date_of_birth, dateOfDeath: patch.date_of_death,
         cemetery: patch.cemetery, plotNumber: patch.plot_number,
-        landmark: patch.landmark, siteAccess: patch.site_access, locationPin: patch.location_pin
+        landmark: patch.landmark, siteAccess: patch.site_access, locationPin: patch.location_pin,
+        terrainType: patch.terrain_type, groundProfile: patch.ground_profile,
+        checklistSlab: patch.checklist_slab, checklistStencil: patch.checklist_stencil,
+        checklistEngraved: patch.checklist_engraved, checklistPolished: patch.checklist_polished
       });
       if(installmentsList) c.installments = installmentsList;
       c.proposalItems = proposalList;
@@ -1948,13 +2063,13 @@ function renderSignoffPanel(c){
       '<button class="btn-ghost" id="sendSignoffBtn">Send again</button>' +
     '</div>';
 }
-function generateSignoffToken(){
+function generateRandomToken(){
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
 async function sendForSignoff(c){
-  const token = c.signoffToken || generateSignoffToken();
+  const token = c.signoffToken || generateRandomToken();
   try{
     await updateCase(c.id, { signoff_token: token, signoff_status: "Sent" });
     c.signoffToken = token; c.signoffStatus = "Sent";
@@ -1973,6 +2088,110 @@ function copySignoffLink(c){
     setTimeout(() => { if(document.body.contains(btn)) btn.textContent = orig; }, 1500);
   }
 }
+
+/* ---------- Family tracker link ----------
+   A second, separate public link/token from the design sign-off one —
+   this one is a standing read-only status page (stage, balance, next
+   installment) the family can keep and re-check, not a one-time approval. */
+function renderTrackerPanel(c){
+  if(!c.trackerToken){
+    return '<button class="btn-ghost" id="sendTrackerBtn">Create tracker link</button>';
+  }
+  const link = location.origin + "/track.html?token=" + encodeURIComponent(c.trackerToken);
+  return '<div class="signoff-link-row">' +
+    '<input readonly value="' + esc(link) + '" onclick="this.select()">' +
+    '<button class="btn-ghost" id="copyTrackerBtn">Copy link</button>' +
+  '</div>';
+}
+async function sendTrackerLink(c){
+  const token = c.trackerToken || generateRandomToken();
+  try{
+    await updateCase(c.id, { tracker_token: token });
+    c.trackerToken = token;
+    renderDrawer();
+  }catch(err){
+    alert("Couldn't create the tracker link — try again.");
+  }
+}
+function copyTrackerLink(c){
+  const link = location.origin + "/track.html?token=" + encodeURIComponent(c.trackerToken);
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).catch(() => {});
+  const btn = document.getElementById("copyTrackerBtn");
+  if(btn){
+    const orig = btn.textContent;
+    btn.textContent = "Copied ✓";
+    setTimeout(() => { if(document.body.contains(btn)) btn.textContent = orig; }, 1500);
+  }
+}
+
+/* ---------- Payments ledger ----------
+   Zero cash handling: every entry needs a proof image (POP, deposit
+   slip, or Speedpoint slip) attached before it's logged. Each entry
+   sums back onto the family's "Paid so far" via payments-add.js. */
+async function loadPayments(c){
+  const body = document.getElementById("paymentsBody");
+  try{
+    const res = await apiFetch("/.netlify/functions/payments-list?family_id=" + encodeURIComponent(c.id));
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || "Couldn't load payments.");
+    renderPaymentsList(data.payments || []);
+  }catch(err){
+    if(body) body.innerHTML = '<div class="empty-state" style="padding:10px 0">Couldn\'t load payments (' + esc(err.message) + ').</div>';
+  }
+}
+function renderPaymentsList(payments){
+  const body = document.getElementById("paymentsBody");
+  if(!body) return;
+  body.className = "";
+  body.innerHTML = payments.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Method</th><th class="right">Amount</th><th>Proof</th></tr></thead><tbody>' +
+    payments.map(p =>
+      '<tr>' +
+        '<td>' + (p.date ? fmtDateISO(p.date) : "—") + '</td>' +
+        '<td style="color:var(--ink-soft)">' + esc(p.method) + '</td>' +
+        '<td class="right" style="font-weight:700">' + ZAR(p.amount) + '</td>' +
+        '<td>' + (p.proofUrl ? '<a href="' + esc(p.proofUrl) + '" target="_blank">View</a>' : '—') + '</td>' +
+      '</tr>'
+    ).join("") + '</tbody></table></div>' : '<div class="empty-state" style="padding:14px 0">No payments logged yet.</div>';
+}
+function openPaymentModal(c){
+  document.getElementById("payAmount").value = "";
+  document.getElementById("payMethod").innerHTML = PAYMENT_METHODS.map(m => '<option>' + esc(m) + '</option>').join("");
+  document.getElementById("payDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("payProofInput").value = "";
+  document.getElementById("paymentStatus").textContent = "";
+  document.getElementById("paymentOverlay").dataset.caseId = c.id;
+  document.getElementById("paymentOverlay").classList.add("open");
+}
+document.getElementById("paymentClose").addEventListener("click", () => document.getElementById("paymentOverlay").classList.remove("open"));
+document.getElementById("paymentOverlay").addEventListener("click", e => { if(e.target.id === "paymentOverlay") document.getElementById("paymentOverlay").classList.remove("open"); });
+document.getElementById("paymentSaveBtn").addEventListener("click", async () => {
+  const status = document.getElementById("paymentStatus");
+  const caseId = document.getElementById("paymentOverlay").dataset.caseId;
+  const c = state.cases.find(x => x.id === caseId);
+  const amount = document.getElementById("payAmount").value;
+  const method = document.getElementById("payMethod").value;
+  const date = document.getElementById("payDate").value;
+  const proofFile = document.getElementById("payProofInput").files[0];
+  if(!amount || Number(amount) <= 0){ status.textContent = "Enter an amount."; status.className = "save-status err"; return; }
+  if(!date){ status.textContent = "Enter a date."; status.className = "save-status err"; return; }
+  if(!proofFile){ status.textContent = "A proof image is required — no cash is taken without one."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    const res = await apiFetch("/.netlify/functions/payments-add", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ family_id: caseId, amount, method, date, label: c.family + " – " + date })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || "Couldn't log the payment.");
+    await uploadFile(data.id, "Receipt Proof", null, proofFile);
+    if(data.totalPaid !== null && data.totalPaid !== undefined) c.paid = data.totalPaid;
+    document.getElementById("paymentOverlay").classList.remove("open");
+    render(); renderDrawer();
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+});
 
 /* ---------- Estimate / invoice documents ---------- */
 function addDays(iso, days){

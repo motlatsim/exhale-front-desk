@@ -99,7 +99,14 @@ exports.handler = async function (event, context) {
         signoff_token: richText("Signoff Token"),
         signoff_status: (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "",
         signoff_date: richText("Signoff Date"),
-        signoff_note: richText("Signoff Note")
+        signoff_note: richText("Signoff Note"),
+        terrain_type: (p["Terrain Type"] && p["Terrain Type"].select && p["Terrain Type"].select.name) || "",
+        ground_profile: (p["Ground Profile"] && p["Ground Profile"].select && p["Ground Profile"].select.name) || "",
+        checklist_slab: !!(p["Checklist Slab"] && p["Checklist Slab"].checkbox),
+        checklist_stencil: !!(p["Checklist Stencil"] && p["Checklist Stencil"].checkbox),
+        checklist_engraved: !!(p["Checklist Engraved"] && p["Checklist Engraved"].checkbox),
+        checklist_polished: !!(p["Checklist Polished"] && p["Checklist Polished"].checkbox),
+        tracker_token: richText("Tracker Token")
       };
     });
 
