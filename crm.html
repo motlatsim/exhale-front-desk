@@ -922,10 +922,13 @@ async function uploadFile(pageId, property, idsProperty, file){
 function liveCases(){ return state.cases.filter(c => c.stage !== "Lost"); }
 function stageCount(st){ return state.cases.filter(c => c.stage === st).length; }
 
-function searchFiltered(list){
+function matchesSearch(c){
   const q = state.query.trim().toLowerCase();
-  if(!q) return list;
-  return list.filter(c => (c.family + c.contact + c.phone + c.town + c.deceasedName).toLowerCase().includes(q));
+  if(!q) return true;
+  return (c.family + c.contact + c.phone + c.town + c.deceasedName).toLowerCase().includes(q);
+}
+function searchFiltered(list){
+  return list.filter(matchesSearch);
 }
 
 function attentionList(){
@@ -1019,7 +1022,7 @@ function renderHeader(){
 function renderDash(){
   const el = document.getElementById("screen-dash");
   const live = liveCases();
-  const today = attentionList();
+  const today = attentionList().filter(t => matchesSearch(t.c));
   const maxCount = Math.max(1, ...STAGES.filter(s=>s!=="Lost").map(stageCount));
   const stageBars = STAGES.filter(s => s !== "Lost" && stageCount(s) > 0).map(s => ({
     stage:s, count:stageCount(s), color:STAGE_COLOR[s], width: Math.round((stageCount(s)/maxCount)*100)
@@ -1174,7 +1177,7 @@ function renderProduction(){
     { name:"On site now", stages:["Installation"] }
   ];
   el.innerHTML = '<div class="lanes">' + lanes.map(lane => {
-    const jobs = state.cases.filter(c => lane.stages.includes(c.stage));
+    const jobs = state.cases.filter(c => lane.stages.includes(c.stage) && matchesSearch(c));
     return '<section class="panel lane">' +
       '<div class="panel-head"><h2 class="h2" style="font-size:14px;flex:1">' + esc(lane.name) + '</h2><span class="count">' + jobs.length + '</span></div>' +
       (jobs.length ? jobs.map(c => {
@@ -1300,7 +1303,7 @@ function renderInvoices(){
   const stones = state.cases.filter(c => c.interest === "Tombstones" && c.value > 0);
   const avgStone = stones.length ? stones.reduce((a,c)=>a+c.value,0) / stones.length : 0;
 
-  const invRows = state.cases.filter(c => c.value > 0);
+  const invRows = state.cases.filter(c => c.value > 0 && matchesSearch(c));
 
   el.innerHTML = '<div class="stat-grid">' +
     statCard("Deposits this month", ZAR(depositsThisMonth.reduce((a,c)=>a+c.paid,0)), plural(depositsThisMonth.length, "family")) +
@@ -1334,7 +1337,7 @@ function renderInvoices(){
 }
 
 function renderLaybuyPanel(){
-  const rows = state.cases.filter(c => c.paymentOption === "Laybuy" && c.installments && c.installments.length);
+  const rows = state.cases.filter(c => c.paymentOption === "Laybuy" && c.installments && c.installments.length && matchesSearch(c));
   if(!rows.length) return "";
   const withNext = rows.map(c => {
     const unpaid = c.installments.filter(i => !i.paid && i.due).sort((a,b) => new Date(a.due) - new Date(b.due));
@@ -1358,7 +1361,7 @@ function renderLaybuyPanel(){
 }
 
 function renderCreditPanel(){
-  const rows = state.cases.filter(c => c.paymentOption === "Credit" && (c.creditProvider || c.creditStatus));
+  const rows = state.cases.filter(c => c.paymentOption === "Credit" && (c.creditProvider || c.creditStatus) && matchesSearch(c));
   if(!rows.length) return "";
   return '<div class="panel" style="margin-top:16px">' +
     '<div class="panel-head"><h2 class="h2">Credit tracking</h2><span class="count">' + plural(rows.length, "family") + '</span></div>' +
@@ -1430,7 +1433,7 @@ function renderReports(){
 /* ---------- Screen: On the road ---------- */
 function renderMobile(){
   const el = document.getElementById("screen-mobile");
-  const today = attentionList();
+  const today = attentionList().filter(t => matchesSearch(t.c));
   el.innerHTML = '<div class="phone-wrap">' +
     '<div class="phone"><div class="phone-screen">' +
       '<div class="phone-head"><div class="phone-statusrow"><span>' + new Date().toLocaleTimeString("en-ZA",{hour:"2-digit",minute:"2-digit"}) + '</span><span>South Africa</span></div>' +
@@ -1620,6 +1623,17 @@ function renderDrawer(){
       '</div>' +
     '</div>' +
     '<div class="drawer-body">' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Proposal</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Every design and request the family has asked for — these become the line items on the estimate.</div>' +
+        '<div id="proposalBody"></div>' +
+        '<div class="prop-actions">' +
+          '<button class="btn-ghost" id="addProposalCustomBtn">+ Add custom item</button>' +
+          '<button class="btn-ghost" id="addProposalCatalogBtn">+ Add from catalog</button>' +
+        '</div>' +
+        '<div class="prop-total" id="proposalTotal"></div>' +
+        '<div class="save-row" style="padding:0"><button class="btn-accent" id="generateShareEstimateBtn">Generate estimate &amp; share with family</button><span class="save-status" id="generateShareStatus"></span></div>' +
+      '</div>' +
       '<div class="panel" style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
         '<div class="h2" style="font-size:13px;flex:0 0 auto">Documents</div>' +
         '<button class="btn-ghost" id="viewEstimateBtn">' + (c.estimateNumber ? "View estimate (" + esc(c.estimateNumber) + ")" : "Create estimate") + '</button>' +
@@ -1656,16 +1670,6 @@ function renderDrawer(){
           '</select></div>' +
           '<div class="field"><label>Payment plan detail</label><input id="fPaymentPlan" value="' + esc(c.paymentPlan) + '" placeholder="e.g. Three parts · next 30 Sep"></div>' +
         '</div>' +
-      '</div>' +
-      '<div class="panel" style="padding:16px 18px">' +
-        '<div class="h2" style="font-size:14px;margin-bottom:4px">Proposal</div>' +
-        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Every design and request the family has asked for — these become the line items on the estimate.</div>' +
-        '<div id="proposalBody"></div>' +
-        '<div class="prop-actions">' +
-          '<button class="btn-ghost" id="addProposalCustomBtn">+ Add custom item</button>' +
-          '<button class="btn-ghost" id="addProposalCatalogBtn">+ Add from catalog</button>' +
-        '</div>' +
-        '<div class="prop-total" id="proposalTotal"></div>' +
       '</div>' +
       '<div class="panel" style="padding:16px 18px">' +
         '<div class="h2" style="font-size:14px;margin-bottom:4px">Design &amp; reference photos</div>' +
@@ -1786,6 +1790,7 @@ function renderDrawer(){
     renderProposalRows(list);
   });
   document.getElementById("addProposalCatalogBtn").addEventListener("click", () => openCatalogPicker());
+  document.getElementById("generateShareEstimateBtn").addEventListener("click", () => generateAndShareEstimate(c));
 
   renderPhotoGrid("designPhotoGrid", c.designImages);
   renderPhotoGrid("refPhotoGrid", c.referencePhotos);
@@ -1991,8 +1996,12 @@ function renderProposalRows(list){
     updated.splice(Number(btn.dataset.i), 1);
     renderProposalRows(updated);
   }));
-  body.querySelectorAll(".prop-name, .prop-desc, .prop-qty, .prop-price").forEach(el => el.addEventListener("change", () => {
-    renderProposalRows(readProposalItemsFromDOM());
+  body.querySelectorAll(".prop-qty, .prop-price").forEach(el => el.addEventListener("input", () => {
+    const row = el.closest(".prop-row");
+    const qty = Number(row.querySelector(".prop-qty").value) || 0;
+    const price = Number(row.querySelector(".prop-price").value) || 0;
+    row.querySelector(".prop-line-total").textContent = ZAR(qty * price);
+    updateProposalTotal(readProposalItemsFromDOM());
   }));
   updateProposalTotal(list);
 }
@@ -2238,6 +2247,54 @@ async function viewDocument(c, type){
   }
   renderPrintDoc(c, type);
   document.getElementById("printDoc").classList.add("open");
+}
+/* Saves the proposal as the estimate (creating the estimate number/date and
+   a family tracker link if either is missing) and opens WhatsApp with the
+   link pre-filled, so staff can build the proposal and hand it to the
+   family in one step. */
+async function generateAndShareEstimate(c){
+  const status = document.getElementById("generateShareStatus");
+  const items = readProposalItemsFromDOM().filter(i => i.name.trim());
+  if(!items.length){
+    status.textContent = "Add at least one item to the proposal first.";
+    status.className = "save-status err";
+    return;
+  }
+  const total = items.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.price)||0), 0);
+  const patch = { proposal_items: JSON.stringify(items), quoted_value: total };
+  if(!c.estimateNumber){
+    patch.estimate_number = nextDocNumber("EST", "estimateNumber");
+    patch.estimate_date = new Date().toISOString().slice(0,10);
+  }
+  const trackerToken = c.trackerToken || generateRandomToken();
+  if(!c.trackerToken) patch.tracker_token = trackerToken;
+
+  // Open the tab synchronously, in the same gesture as the click, so mobile
+  // Safari doesn't treat it as an unrequested popup once we're past the
+  // await below — then point it at the real link once saving succeeds.
+  const waWindow = c.phone ? window.open("", "_blank") : null;
+
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    await updateCase(c.id, patch);
+    c.proposalItems = items;
+    c.value = total;
+    if(patch.estimate_number){ c.estimateNumber = patch.estimate_number; c.estimateDate = patch.estimate_date; }
+    c.trackerToken = trackerToken;
+    render(); renderDrawer();
+
+    const link = location.origin + "/track.html?token=" + encodeURIComponent(trackerToken);
+    if(c.phone && waWindow){
+      const message = "Hi " + (c.contact.split(" ")[0] || "") + ", here's the estimate for " + c.family + " — " + ZAR(total) + " total. You can view it and track progress here: " + link;
+      waWindow.location = "https://wa.me/" + toE164(c.phone).replace("+","") + "?text=" + encodeURIComponent(message);
+    }else{
+      alert("Estimate saved (" + ZAR(total) + " total). No phone on file to share via WhatsApp — copy the link from the Family tracker link panel below instead.");
+    }
+  }catch(err){
+    if(waWindow) waWindow.close();
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
 }
 function closePrintDoc(){ document.getElementById("printDoc").classList.remove("open"); }
 document.getElementById("docCloseBtn").addEventListener("click", closePrintDoc);

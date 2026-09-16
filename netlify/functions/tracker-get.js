@@ -53,6 +53,10 @@ exports.handler = async function (event) {
       .filter(i => !i.paid && i.due)
       .sort((a, b) => new Date(a.due) - new Date(b.due))[0] || null;
 
+    let items = [];
+    try { items = JSON.parse(richText("Proposal Items") || "[]"); } catch (e) { items = []; }
+    items = items.filter(i => i && i.name && i.name.trim());
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -63,6 +67,9 @@ exports.handler = async function (event) {
         stageIndex: STAGE_STEPS.indexOf(stage),
         stages: STAGE_STEPS,
         isLost: stage === "Lost",
+        estimateNumber: richText("Estimate Number"),
+        estimateDate: richText("Estimate Date"),
+        items,
         quotedValue: quoted,
         amountPaid: paid,
         balance: Math.max(0, quoted - paid),
