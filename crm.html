@@ -132,6 +132,7 @@
   .col-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:70px}
   .col-body.drag-over{background:rgba(32,201,151,.08)}
   .kcard{background:var(--panel);border:1px solid var(--hairline-soft);border-radius:10px;padding:11px 12px;cursor:grab}
+  .kcard.touch{cursor:pointer}
   .kcard:hover{border-color:var(--green)}
   .kcard.dragging{opacity:.4}
   .kcard .fam{font-weight:700;font-size:13px}
@@ -678,6 +679,12 @@ const NAV = [
 
 /* ---------- State ---------- */
 const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null };
+/* Native HTML5 drag-and-drop (used to move Pipeline cards between stages)
+   fights with touch scrolling on phones — iOS Safari in particular treats
+   a draggable element inside a scrollable row as an ambiguous gesture and
+   swallows plain taps, making cards feel unclickable. Desktop keeps drag;
+   touch devices fall back to the stage dropdown already in the drawer. */
+const IS_TOUCH = (typeof window !== "undefined") && (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
 
 /* ---------- Helpers ---------- */
 function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -1087,8 +1094,10 @@ function renderPipeline(){
 
   el.querySelectorAll(".kcard").forEach(card => {
     card.addEventListener("click", () => openDrawer(card.dataset.id));
-    card.addEventListener("dragstart", e => { card.classList.add("dragging"); e.dataTransfer.setData("text/plain", card.dataset.id); });
-    card.addEventListener("dragend", () => card.classList.remove("dragging"));
+    if(!IS_TOUCH){
+      card.addEventListener("dragstart", e => { card.classList.add("dragging"); e.dataTransfer.setData("text/plain", card.dataset.id); });
+      card.addEventListener("dragend", () => card.classList.remove("dragging"));
+    }
   });
   el.querySelectorAll("[data-stage-drop]").forEach(col => {
     col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("drag-over"); });
@@ -1107,7 +1116,7 @@ function renderPipeline(){
   });
 }
 function cardHtml(c){
-  return '<div class="kcard" draggable="true" data-id="' + c.id + '">' +
+  return '<div class="kcard' + (IS_TOUCH ? " touch" : "") + '" draggable="' + (IS_TOUCH ? "false" : "true") + '" data-id="' + c.id + '">' +
     '<div class="fam">' + esc(c.family) + '</div>' +
     '<div class="sub">' + esc(c.contact) + '</div>' +
     '<div class="sub">' + esc(wantingLabel(c)) + (c.town ? " · " + esc(c.town) : "") + '</div>' +
