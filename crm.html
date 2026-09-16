@@ -142,6 +142,7 @@
   .tag.deposit{background:rgba(32,201,151,.16);color:var(--green-deep)}
   .tag.nodeposit{background:var(--rust-pale);color:var(--rust)}
   .tag.age{background:var(--hairline-soft);color:var(--ink-soft);font-weight:700}
+  .tag.changes{background:var(--rust-pale);color:var(--rust);font-weight:700}
   .dropzone{border:1px dashed var(--hairline);border-radius:10px;padding:8px;text-align:center;font-size:11px;color:#9A9488}
 
   /* Families list */
@@ -970,6 +971,11 @@ function attentionList(){
         items.push({ c, reason: "Lay-buy installment of " + ZAR(next.amount) + " is due " + fmtDate(new Date(next.due)) + ".", score: 60, when: "Due soon", color:"#C98A20" });
       }
     }
+    if(c.signoffStatus === "Changes Requested"){
+      items.push({ c, reason: "The family asked for changes to the design" + (c.signoffNote ? " — “" + c.signoffNote + "”" : ".") + " Revise the design and send it again.", score: 93, when: c.signoffDate ? fmtDateISO(c.signoffDate) : "Today", color:"#B5493A" });
+    } else if(c.signoffStatus === "Approved" && c.stage !== "Manufacturing" && !["Ready to Install","Installation","After-Installation Service"].includes(c.stage)){
+      items.push({ c, reason: "The family approved the design — check if the deposit is clear so production can start.", score: 65, when: c.signoffDate ? fmtDateISO(c.signoffDate) : "Today", color:"#128267" });
+    }
     if(reason) items.push({ c, reason, score, when, color });
   });
   items.sort((a,b) => b.score - a.score);
@@ -1126,6 +1132,7 @@ function cardHtml(c){
     '<div class="tags">' +
       '<span class="tag ' + (c.deposit?"deposit":"nodeposit") + '">' + (c.deposit ? "Deposit in" : "No deposit") + '</span>' +
       '<span class="tag age">' + esc(c.age) + '</span>' +
+      (c.signoffStatus === "Changes Requested" ? '<span class="tag changes">Changes requested</span>' : "") +
     '</div></div>';
 }
 
