@@ -425,7 +425,11 @@
     .doc-total-row, .doc-status{width:100%;max-width:260px}
     .doc-table{font-size:11.5px;min-width:520px}
   }
-  @page{ size: A4; margin: 14mm; }
+  /* margin:0 on the @page itself — some browsers/print drivers (especially
+     mobile share-sheet "Print" flows) don't reliably honor a CSS @page
+     margin, so the visible margin is baked into .doc-page's own padding
+     below instead, which always renders regardless of print-driver quirks. */
+  @page{ size: A4; margin: 0; }
   @media print{
     /* Hiding everything but #printDoc via visibility:hidden left the app's
        fixed sidebar bleeding through on real devices (it stayed painted in
@@ -437,7 +441,7 @@
     #gate, #app, #drawerOverlay, #addOverlay, #catalogOverlay, #catalogPickerOverlay, #paymentOverlay{display:none !important}
     #printDoc{display:block !important;position:static !important;inset:auto;background:#fff;overflow:visible}
     .doc-toolbar{display:none}
-    .doc-page{box-shadow:none;margin:0;max-width:none;width:100%;padding:0;font-size:12px}
+    .doc-page{box-shadow:none;margin:0;max-width:none;width:100%;padding:16mm;box-sizing:border-box;font-size:12px}
     .doc-table-wrap{overflow-x:visible}
     .doc-table{page-break-inside:auto}
     .doc-table tr{page-break-inside:avoid;page-break-after:auto}
