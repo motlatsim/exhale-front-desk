@@ -328,6 +328,9 @@
   .prop-remove{border:none;background:none;color:var(--rust);font-size:12px;font-weight:700;cursor:pointer;padding:6px 4px}
   .prop-total{display:flex;justify-content:flex-end;gap:10px;font-size:13.5px;font-weight:800;margin-top:8px;padding-top:10px;border-top:1px solid var(--hairline-soft)}
   .prop-actions{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+  .prop-share-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:12px;border-top:1px solid var(--hairline-soft)}
+  .prop-share-label{font-size:12px;font-weight:700;color:var(--ink-soft);margin-right:2px}
+  .prop-share-hint{font-size:12px;color:var(--ink-soft);margin-top:10px;padding-top:12px;border-top:1px solid var(--hairline-soft)}
 
   /* Photo galleries */
   .photo-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
@@ -408,13 +411,17 @@
     .doc-total-row, .doc-status{width:100%;max-width:260px}
     .doc-table{font-size:11.5px;min-width:520px}
   }
+  @page{ size: A4; margin: 14mm; }
   @media print{
+    html, body{width:210mm}
     body *{visibility:hidden}
     #printDoc, #printDoc *{visibility:visible}
-    #printDoc{position:absolute;inset:0;background:#fff}
+    #printDoc{position:absolute;inset:0;background:#fff;overflow:visible}
     .doc-toolbar{display:none}
-    .doc-page{box-shadow:none;margin:0;max-width:none}
+    .doc-page{box-shadow:none;margin:0;max-width:none;width:100%;padding:0;font-size:12px}
     .doc-table-wrap{overflow-x:visible}
+    .doc-table{page-break-inside:auto}
+    .doc-table tr{page-break-inside:avoid;page-break-after:auto}
   }
 </style>
 </head>
@@ -1639,7 +1646,19 @@ function renderDrawer(){
           '<button class="btn-ghost" id="addProposalCatalogBtn">+ Add from catalog</button>' +
         '</div>' +
         '<div class="prop-total" id="proposalTotal"></div>' +
-        '<div class="save-row" style="padding:0"><button class="btn-accent" id="generateShareEstimateBtn">Generate estimate &amp; share with family</button><span class="save-status" id="generateShareStatus"></span></div>' +
+        '<div class="save-row" style="padding:0;flex-wrap:wrap">' +
+          '<button class="btn-accent" id="saveProposalBtn">Save</button>' +
+          '<button class="btn-ghost" id="convertEstimateBtn">Convert to estimate</button>' +
+          '<span class="save-status" id="proposalSaveStatus"></span>' +
+        '</div>' +
+        (c.estimateNumber ?
+          '<div class="prop-share-row">' +
+            '<span class="prop-share-label">Share estimate ' + esc(c.estimateNumber) + '</span>' +
+            '<button class="btn-ghost" id="shareWhatsAppBtn">WhatsApp</button>' +
+            '<button class="btn-ghost" id="shareEmailBtn">Email</button>' +
+            '<button class="btn-ghost" id="sharePrintBtn">Print</button>' +
+          '</div>'
+        : '<div class="prop-share-hint">Convert to estimate to unlock sharing.</div>') +
       '</div>' +
       '<div class="panel" style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
         '<div class="h2" style="font-size:13px;flex:0 0 auto">Documents</div>' +
@@ -1797,7 +1816,14 @@ function renderDrawer(){
     renderProposalRows(list);
   });
   document.getElementById("addProposalCatalogBtn").addEventListener("click", () => openCatalogPicker());
-  document.getElementById("generateShareEstimateBtn").addEventListener("click", () => generateAndShareEstimate(c));
+  document.getElementById("saveProposalBtn").addEventListener("click", () => saveProposalOnly(c));
+  document.getElementById("convertEstimateBtn").addEventListener("click", () => convertToEstimate(c));
+  const shareWaBtn = document.getElementById("shareWhatsAppBtn");
+  if(shareWaBtn) shareWaBtn.addEventListener("click", () => shareEstimateWhatsApp(c));
+  const shareEmailBtn = document.getElementById("shareEmailBtn");
+  if(shareEmailBtn) shareEmailBtn.addEventListener("click", () => shareEstimateEmail(c));
+  const sharePrintBtn = document.getElementById("sharePrintBtn");
+  if(sharePrintBtn) sharePrintBtn.addEventListener("click", () => shareEstimatePrint(c));
 
   renderPhotoGrid("designPhotoGrid", c.designImages);
   renderPhotoGrid("refPhotoGrid", c.referencePhotos);
@@ -2255,50 +2281,113 @@ async function viewDocument(c, type){
   renderPrintDoc(c, type);
   document.getElementById("printDoc").classList.add("open");
 }
-/* Saves the proposal as the estimate (creating the estimate number/date and
-   a family tracker link if either is missing) and opens WhatsApp with the
-   link pre-filled, so staff can build the proposal and hand it to the
-   family in one step. */
-async function generateAndShareEstimate(c){
-  const status = document.getElementById("generateShareStatus");
+/* ---------- Proposal save / convert / share ----------
+   Three separate actions: Save (just persists the items), Convert to
+   estimate (also assigns the estimate number/date), and Share (WhatsApp,
+   Email, Print — each re-saves first so the shared version is never
+   stale, and creates the estimate/tracker link if either is missing). */
+async function saveProposalItems(c, opts){
+  opts = opts || {};
+  const items = readProposalItemsFromDOM().filter(i => i.name.trim());
+  const total = items.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.price)||0), 0);
+  const patch = { proposal_items: JSON.stringify(items), quoted_value: total };
+  if(opts.ensureEstimate && !c.estimateNumber){
+    patch.estimate_number = nextDocNumber("EST", "estimateNumber");
+    patch.estimate_date = new Date().toISOString().slice(0,10);
+  }
+  if(opts.ensureTracker && !c.trackerToken){
+    patch.tracker_token = generateRandomToken();
+  }
+  await updateCase(c.id, patch);
+  c.proposalItems = items;
+  c.value = total;
+  if(patch.estimate_number){ c.estimateNumber = patch.estimate_number; c.estimateDate = patch.estimate_date; }
+  if(patch.tracker_token){ c.trackerToken = patch.tracker_token; }
+  return { items, total };
+}
+async function saveProposalOnly(c){
+  const status = document.getElementById("proposalSaveStatus");
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    await saveProposalItems(c, {});
+    render(); renderDrawer();
+    document.getElementById("proposalSaveStatus").textContent = "Saved ✓";
+    document.getElementById("proposalSaveStatus").className = "save-status ok";
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+}
+async function convertToEstimate(c){
+  const status = document.getElementById("proposalSaveStatus");
   const items = readProposalItemsFromDOM().filter(i => i.name.trim());
   if(!items.length){
     status.textContent = "Add at least one item to the proposal first.";
     status.className = "save-status err";
     return;
   }
-  const total = items.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.price)||0), 0);
-  const patch = { proposal_items: JSON.stringify(items), quoted_value: total };
-  if(!c.estimateNumber){
-    patch.estimate_number = nextDocNumber("EST", "estimateNumber");
-    patch.estimate_date = new Date().toISOString().slice(0,10);
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    await saveProposalItems(c, { ensureEstimate: true });
+    render(); renderDrawer();
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
   }
-  const trackerToken = c.trackerToken || generateRandomToken();
-  if(!c.trackerToken) patch.tracker_token = trackerToken;
-
+}
+async function shareEstimateWhatsApp(c){
+  const status = document.getElementById("proposalSaveStatus");
+  const items = readProposalItemsFromDOM().filter(i => i.name.trim());
+  if(!items.length){ status.textContent = "Add at least one item first."; status.className = "save-status err"; return; }
   // Open the tab synchronously, in the same gesture as the click, so mobile
   // Safari doesn't treat it as an unrequested popup once we're past the
   // await below — then point it at the real link once saving succeeds.
   const waWindow = c.phone ? window.open("", "_blank") : null;
-
   status.textContent = "Saving…"; status.className = "save-status";
   try{
-    await updateCase(c.id, patch);
-    c.proposalItems = items;
-    c.value = total;
-    if(patch.estimate_number){ c.estimateNumber = patch.estimate_number; c.estimateDate = patch.estimate_date; }
-    c.trackerToken = trackerToken;
+    const { total } = await saveProposalItems(c, { ensureEstimate: true, ensureTracker: true });
     render(); renderDrawer();
-
-    const link = location.origin + "/track.html?token=" + encodeURIComponent(trackerToken);
+    const link = location.origin + "/track.html?token=" + encodeURIComponent(c.trackerToken);
     if(c.phone && waWindow){
       const message = "Hi " + (c.contact.split(" ")[0] || "") + ", here's the estimate for " + c.family + " — " + ZAR(total) + " total. You can view it and track progress here: " + link;
       waWindow.location = "https://wa.me/" + toE164(c.phone).replace("+","") + "?text=" + encodeURIComponent(message);
     }else{
+      if(waWindow) waWindow.close();
       alert("Estimate saved (" + ZAR(total) + " total). No phone on file to share via WhatsApp — copy the link from the Family tracker link panel below instead.");
     }
   }catch(err){
     if(waWindow) waWindow.close();
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+}
+async function shareEstimateEmail(c){
+  const status = document.getElementById("proposalSaveStatus");
+  const items = readProposalItemsFromDOM().filter(i => i.name.trim());
+  if(!items.length){ status.textContent = "Add at least one item first."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    const { total } = await saveProposalItems(c, { ensureEstimate: true, ensureTracker: true });
+    render(); renderDrawer();
+    const link = location.origin + "/track.html?token=" + encodeURIComponent(c.trackerToken);
+    const subject = "Your estimate from Exhale Memorials — " + c.estimateNumber;
+    const body = "Hi " + (c.contact.split(" ")[0] || "") + ",\n\nHere is the estimate for " + c.family + " — " + ZAR(total) + " total.\n\nYou can view the full breakdown and track progress here:\n" + link + "\n\nKind regards,\nExhale Memorials";
+    window.location.href = "mailto:" + encodeURIComponent(c.email || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+}
+async function shareEstimatePrint(c){
+  const status = document.getElementById("proposalSaveStatus");
+  const items = readProposalItemsFromDOM().filter(i => i.name.trim());
+  if(!items.length){ status.textContent = "Add at least one item first."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    await saveProposalItems(c, { ensureEstimate: true });
+    render(); renderDrawer();
+    viewDocument(c, "Estimate");
+  }catch(err){
     status.textContent = "Couldn't save: " + err.message;
     status.className = "save-status err";
   }
