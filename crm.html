@@ -397,10 +397,9 @@
      floored at 860px regardless of its actual container, which is exactly
      what was pushing the Qty/Rate/Amount columns off the printed page. */
   .doc-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;margin-top:30px;font-size:12.5px}
-  .doc-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#5A5D68;padding-bottom:10px;border-bottom:2px solid #2B2D37}
+  .doc-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#5A5D68;padding:0 8px 10px 0;border-bottom:2px solid #2B2D37;white-space:normal;overflow-wrap:break-word}
   .doc-table th.right,.doc-table td.right{text-align:right}
   .doc-table td{padding:12px 8px 12px 0;border-bottom:1px solid #EEE9E1;vertical-align:top;overflow-wrap:break-word}
-  .doc-table th{padding-right:8px}
   .doc-table td.doc-item-name{font-weight:700}
   .doc-table th:nth-child(1), .doc-table td:nth-child(1){width:5%}
   .doc-table th:nth-child(2), .doc-table td:nth-child(2){width:21%}
