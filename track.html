@@ -131,7 +131,7 @@ async function load(){
       estimateCard +
       (financials ? '<div class="card">' + financials + '</div>' : "") +
       (dates ? '<div class="card">' + dates + '</div>' : "") +
-      '<div class="footnote">Exhale Memorials · ' + esc(location.hostname) + '</div>';
+      '<div class="footnote">Exhale Memorials · ' + esc(location.hostname) + ' · Built by Motlatsi Molefe</div>';
   }catch(err){
     content.innerHTML = '<div class="error">' + esc(err.message) + '</div>';
   }

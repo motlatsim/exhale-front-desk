@@ -131,7 +131,7 @@ async function load(){
         '</div>' +
         '<div class="save-note" id="saveNote"></div>' +
       '</div>' +
-      '<div class="footnote">Exhale Memorials · ' + esc(location.hostname) + '</div>';
+      '<div class="footnote">Exhale Memorials · ' + esc(location.hostname) + ' · Built by Motlatsi Molefe</div>';
 
     document.querySelectorAll(".gallery img").forEach(img => img.addEventListener("click", () => showLightbox(img.dataset.full)));
     document.getElementById("approveBtn").addEventListener("click", () => respond("approve"));
