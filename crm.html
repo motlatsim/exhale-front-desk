@@ -389,13 +389,6 @@
   .doc-detail-row{display:flex;justify-content:space-between;font-size:12.5px;margin-top:6px}
   .doc-detail-row span:first-child{color:#5A5D68}
   .doc-detail-row span:last-child{font-weight:700}
-  /* table-layout:fixed makes the table strictly respect its container width
-     (auto layout will happily grow wider than 100% and spill off the page
-     if a cell — usually Description — wants more room than that leaves).
-     min-width:0 overrides the app-wide table{min-width:860px} rule (meant
-     for the CRM's own scrollable data tables) — without it, this table was
-     floored at 860px regardless of its actual container, which is exactly
-     what was pushing the Qty/Rate/Amount columns off the printed page. */
   .doc-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;margin-top:30px;font-size:12.5px}
   .doc-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#5A5D68;padding:0 8px 10px 0;border-bottom:2px solid #2B2D37;white-space:normal;overflow-wrap:break-word}
   .doc-table th.right,.doc-table td.right{text-align:right}
@@ -424,18 +417,8 @@
     .doc-total-row, .doc-status{width:100%;max-width:260px}
     .doc-table{font-size:11.5px;min-width:520px}
   }
-  /* margin:0 on the @page itself — some browsers/print drivers (especially
-     mobile share-sheet "Print" flows) don't reliably honor a CSS @page
-     margin, so the visible margin is baked into .doc-page's own padding
-     below instead, which always renders regardless of print-driver quirks. */
   @page{ size: A4; margin: 0; }
   @media print{
-    /* Hiding everything but #printDoc via visibility:hidden left the app's
-       fixed sidebar bleeding through on real devices (it stayed painted in
-       its own layer) and clipped the table. display:none removes those
-       elements from the render tree entirely, so nothing is left to bleed
-       through and #printDoc can lay out normally instead of needing
-       position:fixed/absolute tricks. */
     html, body{background:#fff !important;width:auto;height:auto;overflow:visible !important}
     #gate, #app, #drawerOverlay, #addOverlay, #catalogOverlay, #catalogPickerOverlay, #paymentOverlay{display:none !important}
     #printDoc{display:block !important;position:static !important;inset:auto;background:#fff;overflow:visible}
@@ -491,6 +474,7 @@
       </div>
       <div class="actions">
         <input class="searchbox" id="searchInput" placeholder="Search a family, phone or town…">
+        <button class="btn-ghost" id="searchBtn">Search</button>
         <a class="btn-ghost" href="index.html">Front Desk</a>
         <button class="btn-accent" id="newFamilyBtn">+ New family</button>
       </div>
@@ -614,11 +598,7 @@
 <script>
 "use strict";
 
-/* ---------- Gate (shared with Front Desk) ----------
-   The password check itself runs server-side in crm-auth.js — it hands
-   back CRM_SESSION_KEY only on a correct password, and every data
-   function then requires that key on the x-crm-key header. This is
-   what actually protects the data; the form below is just the UI. */
+/* ---------- Gate (shared with Front Desk) ---------- */
 function showApp(){
   document.getElementById("gate").style.display = "none";
   document.getElementById("app").classList.add("open");
@@ -709,21 +689,11 @@ const NAV = [
 
 /* ---------- State ---------- */
 const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null };
-/* Native HTML5 drag-and-drop (used to move Pipeline cards between stages)
-   fights with touch scrolling on phones — iOS Safari in particular treats
-   a draggable element inside a scrollable row as an ambiguous gesture and
-   swallows plain taps, making cards feel unclickable. Desktop keeps drag;
-   touch devices fall back to the stage dropdown already in the drawer. */
 const IS_TOUCH = (typeof window !== "undefined") && (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
 
 /* ---------- Helpers ---------- */
 function esc(s){ return (s||"").toString().replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-/* en-ZA's toLocaleString groups thousands with a non-breaking space ( ),
-   which makes "R22 000" one unbreakable token — wide table cells (like the
-   estimate/invoice Amount column) would rather grow past their container
-   than break it, pushing later columns off the printed page. A normal
-   space looks identical but lets the browser wrap or shrink normally. */
-function ZAR(n){ return "R" + Math.round(n||0).toLocaleString("en-ZA").replace(/[, ]/g," "); }
+function ZAR(n){ return "R" + Math.round(n||0).toLocaleString("en-ZA").replace(/[, ]/g," "); }
 function digits(phone){ return (phone||"").replace(/[^\d+]/g,""); }
 function toE164(raw){
   const c = digits(raw);
@@ -844,12 +814,6 @@ function normalize(e){
   return c;
 }
 
-/* apiFetch attaches the session key handed out by crm-auth.js and bounces
-   back to the gate in place (no page reload — a reload here on a
-   persistently-stale key was causing a refresh loop) if the server
-   ever rejects it. localStorage rather than sessionStorage: mobile
-   Safari can drop sessionStorage across app-switches, which was
-   kicking people back to the gate mid-session. */
 async function apiFetch(url, opts){
   opts = opts || {};
   opts.headers = Object.assign({ "x-crm-key": localStorage.getItem("exhale_crm_key") || "" }, opts.headers || {});
@@ -938,9 +902,6 @@ async function saveCatalogItem(item){
   return data;
 }
 
-/* Uploads straight into a Notion Files property via notion-upload-file.js.
-   idsProperty is omitted for a full-replace (single photo); passed for an
-   append-only gallery (design images / reference photos). */
 async function uploadFile(pageId, property, idsProperty, file){
   const form = new FormData();
   form.append("file", file);
@@ -1061,11 +1022,12 @@ function renderHeader(){
 /* ---------- Screen: Today ---------- */
 function renderDash(){
   const el = document.getElementById("screen-dash");
-  const live = liveCases();
+  const live = liveCases().filter(matchesSearch);
   const today = attentionList().filter(t => matchesSearch(t.c));
-  const maxCount = Math.max(1, ...STAGES.filter(s=>s!=="Lost").map(stageCount));
-  const stageBars = STAGES.filter(s => s !== "Lost" && stageCount(s) > 0).map(s => ({
-    stage:s, count:stageCount(s), color:STAGE_COLOR[s], width: Math.round((stageCount(s)/maxCount)*100)
+  const dashStageCount = st => live.filter(c => c.stage === st).length;
+  const maxCount = Math.max(1, ...STAGES.filter(s=>s!=="Lost").map(dashStageCount));
+  const stageBars = STAGES.filter(s => s !== "Lost" && dashStageCount(s) > 0).map(s => ({
+    stage:s, count:dashStageCount(s), color:STAGE_COLOR[s], width: Math.round((dashStageCount(s)/maxCount)*100)
   }));
 
   const upcoming = live
@@ -1258,7 +1220,7 @@ function renderCalendar(){
   const now = new Date();
   const year = now.getFullYear(), month = now.getMonth();
   const first = new Date(year, month, 1);
-  const startOffset = (first.getDay() + 6) % 7; // Monday-first
+  const startOffset = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month+1, 0).getDate();
   const todayNum = now.getDate();
 
@@ -2119,10 +2081,7 @@ async function handlePhotoUpload(c, inputId, statusId, property, idsProperty){
   }
 }
 
-/* ---------- Design sign-off ----------
-   The family reviews and approves from their own phone via a long random
-   token in the link — see approve.html and signoff-get/respond.js. No
-   login for them; access control is the token itself. */
+/* ---------- Design sign-off ---------- */
 function renderSignoffPanel(c){
   if(!c.signoffToken){
     return '<div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">' +
@@ -2167,10 +2126,7 @@ function copySignoffLink(c){
   }
 }
 
-/* ---------- Family tracker link ----------
-   A second, separate public link/token from the design sign-off one —
-   this one is a standing read-only status page (stage, balance, next
-   installment) the family can keep and re-check, not a one-time approval. */
+/* ---------- Family tracker link ---------- */
 function renderTrackerPanel(c){
   if(!c.trackerToken){
     return '<button class="btn-ghost" id="sendTrackerBtn">Create tracker link</button>';
@@ -2202,10 +2158,7 @@ function copyTrackerLink(c){
   }
 }
 
-/* ---------- Payments ledger ----------
-   Zero cash handling: every entry needs a proof image (POP, deposit
-   slip, or Speedpoint slip) attached before it's logged. Each entry
-   sums back onto the family's "Paid so far" via payments-add.js. */
+/* ---------- Payments ledger ---------- */
 async function loadPayments(c){
   const body = document.getElementById("paymentsBody");
   try{
@@ -2308,11 +2261,6 @@ async function viewDocument(c, type){
   renderPrintDoc(c, type);
   document.getElementById("printDoc").classList.add("open");
 }
-/* ---------- Proposal save / convert / share ----------
-   Three separate actions: Save (just persists the items), Convert to
-   estimate (also assigns the estimate number/date), and Share (WhatsApp,
-   Email, Print — each re-saves first so the shared version is never
-   stale, and creates the estimate/tracker link if either is missing). */
 async function saveProposalItems(c, opts){
   opts = opts || {};
   const items = readProposalItemsFromDOM().filter(i => i.name.trim());
@@ -2366,9 +2314,6 @@ async function shareEstimateWhatsApp(c){
   const status = document.getElementById("proposalSaveStatus");
   const items = readProposalItemsFromDOM().filter(i => i.name.trim());
   if(!items.length){ status.textContent = "Add at least one item first."; status.className = "save-status err"; return; }
-  // Open the tab synchronously, in the same gesture as the click, so mobile
-  // Safari doesn't treat it as an unrequested popup once we're past the
-  // await below — then point it at the real link once saving succeeds.
   const waWindow = c.phone ? window.open("", "_blank") : null;
   status.textContent = "Saving…"; status.className = "save-status";
   try{
@@ -2540,7 +2485,14 @@ document.getElementById("addSaveBtn").addEventListener("click", async () => {
 });
 
 /* ---------- Search ---------- */
-document.getElementById("searchInput").addEventListener("input", e => { state.query = e.target.value; render(); });
+function runSearch(){
+  state.query = document.getElementById("searchInput").value;
+  render();
+}
+document.getElementById("searchBtn").addEventListener("click", runSearch);
+document.getElementById("searchInput").addEventListener("keydown", e => {
+  if(e.key === "Enter"){ e.preventDefault(); runSearch(); }
+});
 
 /* ---------- Router ---------- */
 const SCREEN_RENDERERS = {
