@@ -106,7 +106,9 @@ exports.handler = async function (event, context) {
         checklist_stencil: !!(p["Checklist Stencil"] && p["Checklist Stencil"].checkbox),
         checklist_engraved: !!(p["Checklist Engraved"] && p["Checklist Engraved"].checkbox),
         checklist_polished: !!(p["Checklist Polished"] && p["Checklist Polished"].checkbox),
-        tracker_token: richText("Tracker Token")
+        tracker_token: richText("Tracker Token"),
+        lost_reason: (p["Lost Reason"] && p["Lost Reason"].select && p["Lost Reason"].select.name) || "",
+        lost_reason_detail: richText("Lost Reason Detail")
       };
     });
 

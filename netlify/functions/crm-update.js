@@ -15,6 +15,7 @@ const VALID_CREDIT_STATUSES = ["Not Applied", "Applied", "Approved", "Declined",
 const VALID_SIGNOFF_STATUSES = ["Not Sent", "Sent", "Approved", "Changes Requested"];
 const VALID_TERRAIN_TYPES = ["Standard Driveway", "4x4 Only", "Rough Gravel", "Rocky Ground"];
 const VALID_GROUND_PROFILES = ["Standard Soil", "Sand/Soft Earth", "Rock Slab"];
+const VALID_LOST_REASONS = ["Price too high", "Chose a competitor", "Went cold / unresponsive", "No longer needed", "Financing fell through", "Timing not right", "Other"];
 const { requireKey } = require("./_require-key");
 
 // Notion caps a single rich_text block at 2000 chars; split longer JSON
@@ -71,7 +72,18 @@ exports.handler = async function (event) {
     properties["Town"] = data.town && VALID_TOWNS.includes(data.town) ? { select: { name: data.town } } : { select: null };
   }
   if (data.status !== undefined && VALID_STATUSES.includes(data.status)) {
+    // Marking a family Lost without a reason makes churn unanalyzable —
+    // enforced here, not just in the UI, so no path around it can skip it.
+    if (data.status === "Lost" && !VALID_LOST_REASONS.includes(data.lost_reason)) {
+      return { statusCode: 400, body: JSON.stringify({ error: "A lost reason is required to mark a family Lost." }) };
+    }
     properties["Status"] = { select: { name: data.status } };
+  }
+  if (data.lost_reason !== undefined) {
+    properties["Lost Reason"] = data.lost_reason && VALID_LOST_REASONS.includes(data.lost_reason) ? { select: { name: data.lost_reason } } : { select: null };
+  }
+  if (data.lost_reason_detail !== undefined) {
+    properties["Lost Reason Detail"] = { rich_text: [{ text: { content: String(data.lost_reason_detail).slice(0, 2000) } }] };
   }
   if (data.notes !== undefined) {
     properties["Notes"] = { rich_text: [{ text: { content: String(data.notes).slice(0, 2000) } }] };

@@ -437,7 +437,7 @@
   @page{ size: A4; margin: 0; }
   @media print{
     html, body{background:#fff !important;width:auto;height:auto;overflow:visible !important}
-    #gate, #app, #drawerOverlay, #addOverlay, #catalogOverlay, #catalogPickerOverlay, #paymentOverlay{display:none !important}
+    #gate, #app, #drawerOverlay, #addOverlay, #catalogOverlay, #catalogPickerOverlay, #paymentOverlay, #stockMoveOverlay, #stockItemOverlay, #supplierOverlay, #lostReasonOverlay{display:none !important}
     #printDoc{display:block !important;position:static !important;inset:auto;background:#fff;overflow:visible}
     .doc-toolbar{display:none}
     .doc-page{box-shadow:none;margin:0;max-width:none;width:100%;padding:16mm;box-sizing:border-box;font-size:12px}
@@ -685,6 +685,22 @@
   </div>
 </div>
 
+<div class="overlay" id="lostReasonOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Why is this family being marked Lost?</div>
+      <button class="modal-close" id="lostReasonClose">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">A reason is required so we can see why leads and deals drop off over time.</div>
+    <div class="field"><label>Reason *</label><select id="lostReasonSelect"></select></div>
+    <div class="field"><label>Detail (optional)</label><textarea id="lostReasonDetail" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="lostReasonCancelBtn">Cancel</button>
+      <button class="btn-accent" id="lostReasonConfirmBtn">Mark as Lost</button>
+    </div>
+  </div>
+</div>
+
 <div id="printDoc">
   <div class="doc-toolbar">
     <button class="doc-close" id="docCloseBtn">Close</button>
@@ -748,6 +764,7 @@ const STAGE_COLOR = {
   "Artwork":"#5B8CC9","Artwork Approval":"#9B7FC9","Manufacturing":"#128267","Ready to Install":"#2B2D37",
   "Installation":"#20C997","After-Installation Service":"#6B6F7B","Lost":"#B5493A"
 };
+const LOST_REASONS = ["Price too high","Chose a competitor","Went cold / unresponsive","No longer needed","Financing fell through","Timing not right","Other"];
 const TOWNS = ["Lusikisiki","Port St Johns","Flagstaff","Other"];
 const INTERESTS = ["Tombstones","Plaques","Grave Restorations","Memorial Books","Not sure yet"];
 const PAYMENT_OPTIONS = ["Laybuy","Credit","Insurance Policy","Once-off Settlement"];
@@ -905,6 +922,8 @@ function normalize(e){
     checklistEngraved: !!e.checklist_engraved,
     checklistPolished: !!e.checklist_polished,
     trackerToken: e.tracker_token || "",
+    lostReason: e.lost_reason || "",
+    lostReasonDetail: e.lost_reason_detail || "",
     submittedAt: submitted,
     updatedAt: e.updated_at || submitted,
     days: daysSince(submitted) || 0,
@@ -1237,6 +1256,38 @@ function statCard(lbl,val,note){
 }
 
 /* ---------- Screen: Pipeline ---------- */
+function openLostReasonModal(){
+  return new Promise(resolve => {
+    const overlay = document.getElementById("lostReasonOverlay");
+    const select = document.getElementById("lostReasonSelect");
+    const detail = document.getElementById("lostReasonDetail");
+    const confirmBtn = document.getElementById("lostReasonConfirmBtn");
+    const cancelBtn = document.getElementById("lostReasonCancelBtn");
+    const closeBtn = document.getElementById("lostReasonClose");
+    select.innerHTML = LOST_REASONS.map(r => '<option>' + esc(r) + '</option>').join("");
+    detail.value = "";
+    overlay.classList.add("open");
+    function cleanup(){
+      overlay.classList.remove("open");
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancel);
+      closeBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onOverlayClick);
+    }
+    function onConfirm(){
+      const result = { reason: select.value, detail: detail.value };
+      cleanup();
+      resolve(result);
+    }
+    function onCancel(){ cleanup(); resolve(null); }
+    function onOverlayClick(e){ if(e.target === overlay) onCancel(); }
+    confirmBtn.addEventListener("click", onConfirm);
+    cancelBtn.addEventListener("click", onCancel);
+    closeBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onOverlayClick);
+  });
+}
+
 function renderPipeline(){
   const el = document.getElementById("screen-pipeline");
   const list = searchFiltered(state.cases);
@@ -1268,8 +1319,15 @@ function renderPipeline(){
       const c = state.cases.find(x => x.id === id);
       if(!c || c.stage === newStage) return;
       const prev = c.stage;
+      const patch = { status:newStage };
+      if(newStage === "Lost"){
+        const result = await openLostReasonModal();
+        if(!result) return;
+        patch.lost_reason = result.reason; patch.lost_reason_detail = result.detail;
+        c.lostReason = result.reason; c.lostReasonDetail = result.detail;
+      }
       c.stage = newStage; render();
-      try{ await updateCase(id, { status:newStage }); }
+      try{ await updateCase(id, patch); }
       catch(err){ c.stage = prev; render(); alert("Couldn't move that card — try again."); }
     });
   });
@@ -1788,6 +1846,10 @@ function renderReports(){
     return { stage:s, avg };
   }).filter(x => x.avg !== null);
 
+  const lostCases = state.cases.filter(c => c.stage === "Lost");
+  const lostCounts = LOST_REASONS.map(r => ({ reason:r, n: lostCases.filter(c=>c.lostReason===r).length })).filter(r => r.n > 0);
+  const maxLost = Math.max(1, ...lostCounts.map(r=>r.n));
+
   el.innerHTML = '<div class="rep-grid">' +
     '<section class="panel" style="padding:18px">' +
       '<h2 class="h2" style="font-size:15px">Enquiries by month</h2>' +
@@ -1812,6 +1874,14 @@ function renderReports(){
           '<div class="dur-row"><span>' + esc(d.stage) + '</span><span>' + d.avg + 'd</span></div>'
         ).join("") : '<div class="empty-state">Not enough data yet.</div>') + '</div>' +
         '<div style="font-size:12px;color:var(--ink-soft);margin-top:12px;line-height:1.5">This reflects time since first enquiry, not time in the current stage — stage-change history isn\'t tracked yet.</div>' +
+      '</section>' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Why families are lost</h2>' +
+        '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">' + plural(lostCases.length,"family") + ' lost in total</div>' +
+        '<div style="margin-top:14px">' + (lostCounts.length ? lostCounts.map(r =>
+          '<div class="town-row"><div class="row"><span>' + esc(r.reason) + '</span><span>' + plural(r.n,"family") + '</span></div>' +
+          '<div class="track"><div class="fill" style="width:' + Math.round((r.n/maxLost)*100) + '%;background:var(--rust)"></div></div></div>'
+        ).join("") : '<div class="empty-state">No lost families with a reason yet.</div>') + '</div>' +
       '</section>' +
     '</div>' +
   '</div>';
@@ -2008,6 +2078,7 @@ function renderDrawer(){
           STAGES.map(s => '<option value="' + esc(s) + '"' + (s===c.stage?" selected":"") + '>' + esc(s) + '</option>').join("") +
         '</select>' +
       '</div>' +
+      (c.stage === "Lost" && c.lostReason ? '<div style="font-size:12px;color:#F0B8AE;margin-top:10px">Lost — ' + esc(c.lostReason) + (c.lostReasonDetail ? ": " + esc(c.lostReasonDetail) : "") + '</div>' : "") +
     '</div>' +
     '<div class="drawer-body">' +
       '<div class="panel" style="padding:16px 18px">' +
@@ -2234,8 +2305,15 @@ function renderDrawer(){
         return;
       }
     }
+    const patch = { status:newStage };
+    if(newStage === "Lost"){
+      const result = await openLostReasonModal();
+      if(!result){ e.target.value = prev; return; }
+      patch.lost_reason = result.reason; patch.lost_reason_detail = result.detail;
+      c.lostReason = result.reason; c.lostReasonDetail = result.detail;
+    }
     c.stage = newStage;
-    try{ await updateCase(c.id, { status:newStage }); render(); renderDrawer(); }
+    try{ await updateCase(c.id, patch); render(); renderDrawer(); }
     catch(err){ c.stage = prev; e.target.value = prev; alert(err.message || "Couldn't move stage — try again."); }
   });
   document.getElementById("logVisitBtn").addEventListener("click", async () => {
