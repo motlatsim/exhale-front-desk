@@ -2512,5 +2512,15 @@ async function boot(){
   await loadAll();
 }
 </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('Exhale CRM Service Worker Registered successfully!', reg.scope))
+        .catch((err) => console.error('Service Worker registration failed:', err));
+    });
+  }
+</script>
+
 </body>
 </html>
