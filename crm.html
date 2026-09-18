@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <title>Exhale Memorials — CRM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest-crm.json">
+<meta name="theme-color" content="#2B2D37">
+<link rel="icon" href="/icons/icon-512.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Exhale CRM">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -2510,6 +2517,12 @@ function render(){
 
 async function boot(){
   await loadAll();
+}
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw-crm.js", { scope: "/crm.html" }).catch(() => {});
+  });
 }
 </script>
 <script>
