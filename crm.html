@@ -150,6 +150,16 @@
   .tag.nodeposit{background:var(--rust-pale);color:var(--rust)}
   .tag.age{background:var(--hairline-soft);color:var(--ink-soft);font-weight:700}
   .tag.changes{background:var(--rust-pale);color:var(--rust);font-weight:700}
+  .tag.low{background:var(--rust-pale);color:var(--rust);font-weight:700}
+  .tag.ok{background:rgba(32,201,151,.16);color:var(--green-deep);font-weight:700}
+  .supplier-card{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:13px 14px;display:flex;flex-direction:column;gap:6px}
+  .supplier-card .name{font-weight:700;font-size:14px}
+  .supplier-card .meta{font-size:12px;color:var(--ink-soft)}
+  .supplier-card .btnrow{display:flex;gap:8px;margin-top:6px}
+  .supplier-card .btnrow a, .supplier-card .btnrow button{flex:1;border:none;font-weight:800;font-size:11.5px;padding:8px;border-radius:8px;cursor:pointer;text-align:center}
+  .supplier-card .btnrow a.call{background:var(--green);color:#0E2A20}
+  .supplier-card .btnrow a.wa{border:1px solid var(--hairline);background:var(--card);color:var(--ink)}
+  .supplier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
   .dropzone{border:1px dashed var(--hairline);border-radius:10px;padding:8px;text-align:center;font-size:11px;color:#9A9488}
 
   /* Families list */
@@ -493,6 +503,7 @@
       <section class="screen" id="screen-pipeline"></section>
       <section class="screen" id="screen-list"></section>
       <section class="screen" id="screen-production"></section>
+      <section class="screen" id="screen-stock"></section>
       <section class="screen" id="screen-calendar"></section>
       <section class="screen" id="screen-messages"></section>
       <section class="screen" id="screen-invoices"></section>
@@ -594,6 +605,86 @@
   </div>
 </div>
 
+<div class="overlay" id="stockMoveOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Log stock movement</div>
+      <button class="modal-close" id="stockMoveClose">×</button>
+    </div>
+    <div class="field"><label>Item *</label><select id="moveItemSelect"></select></div>
+    <div class="field-row">
+      <div class="field"><label>Type *</label><select id="moveType"></select></div>
+      <div class="field" id="moveLocationField"><label>Location *</label><select id="moveLocation"><option>Truck</option><option>Workshop</option></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Qty *</label><input type="number" id="moveQty" min="0" step="any"></div>
+      <div class="field"><label>Date *</label><input type="date" id="moveDate"></div>
+    </div>
+    <div class="field" id="moveSupplierField"><label>Supplier (optional)</label><select id="moveSupplier"><option value="">—</option></select></div>
+    <div class="field" id="moveFamilyField"><label>Family / job (optional)</label><select id="moveFamily"><option value="">—</option></select></div>
+    <div class="field" id="moveCostField"><label>Unit cost, R (optional)</label><input type="number" id="moveUnitCost" min="0" step="any"></div>
+    <div class="field" id="moveReceiptField"><label>Receipt photo (optional)</label><input type="file" accept="image/*,.pdf" id="moveReceiptInput"></div>
+    <div class="field"><label>Logged by</label><input type="text" id="moveLoggedBy"></div>
+    <div class="field"><label>Notes</label><textarea id="moveNotes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-accent" id="moveSaveBtn">Log movement</button>
+      <span class="save-status" id="moveStatus"></span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="stockItemOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="stockItemModalTitle">Add stock item</div>
+      <button class="modal-close" id="stockItemClose">×</button>
+    </div>
+    <div class="field"><label>Item name *</label><input type="text" id="siName"></div>
+    <div class="field-row">
+      <div class="field"><label>Category</label><select id="siCategory"></select></div>
+      <div class="field"><label>Unit</label><select id="siUnit"></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Reorder threshold</label><input type="number" id="siReorder" min="0" step="any"></div>
+      <div class="field"><label>Unit cost, R</label><input type="number" id="siUnitCost" min="0" step="any"></div>
+    </div>
+    <div class="field"><label>Supplier contact</label><select id="siSupplierContact"><option value="">—</option></select></div>
+    <div class="field"><label>Supplier notes (pricing, terms, etc.)</label><textarea id="siSupplierText" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-accent" id="stockItemSaveBtn">Save item</button>
+      <span class="save-status" id="stockItemStatus"></span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="supplierOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="supplierModalTitle">Add supplier</div>
+      <button class="modal-close" id="supplierClose">×</button>
+    </div>
+    <div class="field"><label>Name *</label><input type="text" id="supName"></div>
+    <div class="field-row">
+      <div class="field"><label>Phone</label><input type="tel" id="supPhone"></div>
+      <div class="field"><label>Email</label><input type="email" id="supEmail"></div>
+    </div>
+    <div class="field"><label>Town</label><input type="text" id="supTown"></div>
+    <div class="field"><label>Category</label>
+      <div id="supCategoryChecks" style="display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;padding-top:4px">
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" value="Equipment"> Equipment</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" value="Consumables"> Consumables</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" value="Supplies"> Supplies</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" value="Tools"> Tools</label>
+      </div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="supNotes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-accent" id="supplierSaveBtn">Save supplier</button>
+      <span class="save-status" id="supplierStatus"></span>
+    </div>
+  </div>
+</div>
+
 <div id="printDoc">
   <div class="doc-toolbar">
     <button class="doc-close" id="docCloseBtn">Close</button>
@@ -686,6 +777,7 @@ const NAV = [
   { key:"pipeline", label:"Pipeline", icon:'<rect x="3" y="4" width="5" height="16" rx="1"></rect><rect x="10" y="4" width="5" height="11" rx="1"></rect><rect x="17" y="4" width="4" height="7" rx="1"></rect>', badge:true },
   { key:"list", label:"Families", icon:'<path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="3.2"></circle><path d="M22 20v-2a4 4 0 0 0-3-3.8"></path><path d="M16 4.2a3.2 3.2 0 0 1 0 5.6"></path>' },
   { key:"production", label:"Workshop", icon:'<path d="M14.6 3.4a2 2 0 0 1 2.8 0l3.2 3.2a2 2 0 0 1 0 2.8l-2.1 2.1-6-6z"></path><path d="M12.5 5.5 4 14v6h6l8.5-8.5"></path>' },
+  { key:"stock", label:"Stock", icon:'<rect x="1" y="7" width="15" height="11" rx="1.5"></rect><path d="M16 10.5h3.2a1.5 1.5 0 0 1 1.3.75l2 3.5a1.5 1.5 0 0 1 .2.75V17a1 1 0 0 1-1 1H16z"></path><circle cx="6" cy="19.5" r="1.6"></circle><circle cx="17.5" cy="19.5" r="1.6"></circle>', badge:true },
   { key:"calendar", label:"Calendar", icon:'<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path>' },
   { key:"messages", label:"Conversations", icon:'<path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"></path>' },
   { key:"invoices", label:"Payments", icon:'<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17l-3-2-3 2-3-2z"></path><path d="M9 7h6M9 11h6M9 15h3"></path>' },
@@ -695,7 +787,7 @@ const NAV = [
 ];
 
 /* ---------- State ---------- */
-const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null };
+const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null, stockItems:[], stockMovements:[], suppliers:[], stockItemEditingId:null, supplierEditingId:null };
 const IS_TOUCH = (typeof window !== "undefined") && (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
 
 /* ---------- Helpers ---------- */
@@ -874,6 +966,25 @@ async function loadCatalog(){
   }
 }
 
+async function loadStock(){
+  try{
+    const [itemsRes, movesRes, supRes] = await Promise.all([
+      apiFetch("/.netlify/functions/stock-items-list"),
+      apiFetch("/.netlify/functions/stock-movements-list"),
+      apiFetch("/.netlify/functions/supplier-contacts-list")
+    ]);
+    const [itemsData, movesData, supData] = await Promise.all([itemsRes.json(), movesRes.json(), supRes.json()]);
+    state.stockItems = itemsRes.ok ? (itemsData.items || []) : [];
+    state.stockMovements = movesRes.ok ? (movesData.movements || []) : [];
+    state.suppliers = supRes.ok ? (supData.suppliers || []) : [];
+  }catch(err){
+    state.stockItems = []; state.stockMovements = []; state.suppliers = [];
+  }
+}
+function lowStockItems(){
+  return state.stockItems.filter(i => i.stockStatus === "Low Stock" || (i.reorderThreshold > 0 && i.currentStock <= i.reorderThreshold));
+}
+
 async function loadAll(){
   const banner = document.getElementById("errorBanner");
   banner.classList.remove("show");
@@ -885,6 +996,7 @@ async function loadAll(){
   }
   await loadConversations();
   await loadCatalog();
+  await loadStock();
   render();
 }
 
@@ -903,6 +1015,36 @@ async function saveCatalogItem(item){
   const res = await apiFetch("/.netlify/functions/catalog-save", {
     method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify(item)
+  });
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || "Save failed");
+  return data;
+}
+
+async function saveStockItem(item){
+  const res = await apiFetch("/.netlify/functions/stock-items-save", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(item)
+  });
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || "Save failed");
+  return data;
+}
+
+async function saveSupplier(item){
+  const res = await apiFetch("/.netlify/functions/supplier-contacts-save", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(item)
+  });
+  const data = await res.json();
+  if(!res.ok || !data.success) throw new Error(data.error || "Save failed");
+  return data;
+}
+
+async function logStockMovement(payload){
+  const res = await apiFetch("/.netlify/functions/stock-movements-add", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
   });
   const data = await res.json();
   if(!res.ok || !data.success) throw new Error(data.error || "Save failed");
@@ -997,6 +1139,10 @@ function renderNav(){
       const n = state.conversations.filter(c=>c.status==="open").length;
       badge = n ? '<span class="badge">' + n + '</span>' : "";
     }
+    if(item.key === "stock"){
+      const n = lowStockItems().length;
+      badge = n ? '<span class="badge">' + n + '</span>' : "";
+    }
     return '<button class="navbtn' + (active?" active":"") + '" data-nav="' + item.key + '">' +
       '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + item.icon + '</svg>' +
       '<span class="lbl">' + item.label + '</span>' + badge + '</button>';
@@ -1011,6 +1157,7 @@ const TITLES = {
   pipeline: () => ["Pipeline", "Every family, from first call to the year after"],
   list: () => ["Families", state.cases.length + " records · " + liveCases().length + " open"],
   production: () => ["Workshop", "Artwork, cutting, binding and the road"],
+  stock: () => ["Stock", plural(state.stockItems.length, "item") + " · " + plural(lowStockItems().length, "item") + " low"],
   calendar: () => ["Calendar", new Date().toLocaleDateString("en-ZA",{month:"long",year:"numeric"})],
   messages: () => ["Conversations", "WhatsApp threads escalated from the bot"],
   invoices: () => ["Payments", "Quoted value, deposits and what's outstanding"],
@@ -1220,6 +1367,236 @@ function renderProduction(){
     }));
   });
 }
+
+/* ---------- Screen: Stock ---------- */
+const STOCK_CATEGORIES = ["Raw material","Blasting media","Fuel","Engraving supplies","Other"];
+const STOCK_UNITS = ["kg","L","units","slabs","bags"];
+const MOVE_TYPES = ["Delivery In","Move to Truck","Move to Workshop","Used on Job","Lost or Damaged","Adjustment Up","Adjustment Down"];
+const MOVE_TYPES_NEEDING_LOCATION = ["Delivery In","Used on Job","Lost or Damaged","Adjustment Up","Adjustment Down"];
+
+function renderStock(){
+  const el = document.getElementById("screen-stock");
+  const low = lowStockItems();
+  const items = state.stockItems;
+  const byCategory = {};
+  items.forEach(i => { const k = i.category || "Other"; (byCategory[k] = byCategory[k] || []).push(i); });
+  const categories = Object.keys(byCategory).sort();
+
+  el.innerHTML =
+    (low.length ? '<div class="panel" style="border:1px solid var(--rust);background:var(--rust-pale);margin-bottom:16px">' +
+      '<div class="panel-head"><h2 class="h2" style="color:var(--rust)">Low stock</h2><span class="count">' + plural(low.length,"item") + '</span></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Item</th><th class="right">Truck</th><th class="right">Workshop</th><th class="right">Reorder at</th></tr></thead><tbody>' +
+      low.map(i => '<tr><td style="font-weight:700">' + esc(i.name) + '</td><td class="right">' + i.truckQty + '</td><td class="right">' + i.workshopQty + '</td><td class="right">' + i.reorderThreshold + ' ' + esc(i.unit) + '</td></tr>').join("") +
+      '</tbody></table></div></div>' : "") +
+    '<div class="panel">' +
+      '<div class="panel-head"><h2 class="h2">Consumables</h2><span class="count">' + plural(items.length,"item") + '</span>' +
+        '<div style="margin-left:auto;display:flex;gap:8px"><button class="btn-ghost" id="addStockItemBtn">+ Add item</button><button class="btn-accent" id="logMoveBtn">Log movement</button></div>' +
+      '</div>' +
+      (items.length ? categories.map(cat => renderStockCategoryTable(cat, byCategory[cat])).join("") : '<div class="empty-state" style="padding:14px 18px">No stock items yet.</div>') +
+    '</div>' +
+    '<div class="panel" style="margin-top:16px">' +
+      '<div class="panel-head"><h2 class="h2">Suppliers</h2><span class="count">' + plural(state.suppliers.length,"supplier") + '</span>' +
+        '<button class="btn-ghost" style="margin-left:auto" id="addSupplierBtn">+ Add supplier</button>' +
+      '</div>' +
+      (state.suppliers.length ? '<div class="supplier-grid" style="padding:16px 18px">' + state.suppliers.map(renderSupplierCard).join("") + '</div>' : '<div class="empty-state" style="padding:14px 18px">No suppliers yet.</div>') +
+    '</div>' +
+    '<div class="panel" style="margin-top:16px">' +
+      '<div class="panel-head"><h2 class="h2">Recent activity</h2></div>' +
+      (state.stockMovements.length ? '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Location</th><th class="right">Qty</th><th>By</th></tr></thead><tbody>' +
+        state.stockMovements.slice(0,30).map(renderMovementRow).join("") + '</tbody></table></div>' : '<div class="empty-state" style="padding:14px 18px">No movements logged yet.</div>') +
+    '</div>';
+
+  el.querySelectorAll("[data-edit-item]").forEach(btn => btn.addEventListener("click", () => openStockItemModal(state.stockItems.find(i=>i.id===btn.dataset.editItem))));
+  el.querySelectorAll("[data-log-item]").forEach(btn => btn.addEventListener("click", () => openStockMoveModal(btn.dataset.logItem)));
+  el.querySelectorAll("[data-edit-supplier]").forEach(btn => btn.addEventListener("click", () => openSupplierModal(state.suppliers.find(s=>s.id===btn.dataset.editSupplier))));
+  const addItemBtn = document.getElementById("addStockItemBtn"); if(addItemBtn) addItemBtn.addEventListener("click", () => openStockItemModal(null));
+  const logBtn = document.getElementById("logMoveBtn"); if(logBtn) logBtn.addEventListener("click", () => openStockMoveModal(null));
+  const addSupBtn = document.getElementById("addSupplierBtn"); if(addSupBtn) addSupBtn.addEventListener("click", () => openSupplierModal(null));
+}
+
+function renderStockCategoryTable(cat, list){
+  return '<div style="margin:14px 18px 6px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft)">' + esc(cat) + '</div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Item</th><th class="right">Truck</th><th class="right">Workshop</th><th class="right">Total</th><th>Status</th><th></th></tr></thead><tbody>' +
+    list.map(i => {
+      const isLow = i.stockStatus === "Low Stock" || (i.reorderThreshold>0 && i.currentStock<=i.reorderThreshold);
+      return '<tr>' +
+        '<td style="font-weight:700">' + esc(i.name) + '<div style="font-size:11px;color:var(--ink-soft);font-weight:400">' + esc(i.unit) + '</div></td>' +
+        '<td class="right">' + i.truckQty + '</td>' +
+        '<td class="right">' + i.workshopQty + '</td>' +
+        '<td class="right" style="font-weight:700">' + i.currentStock + '</td>' +
+        '<td><span class="tag ' + (isLow?"low":"ok") + '">' + (isLow?"Low":"OK") + '</span></td>' +
+        '<td style="text-align:right;white-space:nowrap"><button class="btn-ghost" style="padding:5px 10px;font-size:11.5px" data-log-item="' + i.id + '">Log</button> <button class="btn-ghost" style="padding:5px 10px;font-size:11.5px" data-edit-item="' + i.id + '">Edit</button></td>' +
+      '</tr>';
+    }).join("") + '</tbody></table></div>';
+}
+
+function renderSupplierCard(s){
+  const tel = s.phone ? "tel:" + s.phone.replace(/\s/g,"") : null;
+  const wa = s.phone ? "https://wa.me/" + toE164(s.phone).replace("+","") : null;
+  return '<div class="supplier-card">' +
+    '<div class="name">' + esc(s.name) + '</div>' +
+    (s.town ? '<div class="meta">' + esc(s.town) + '</div>' : "") +
+    (s.category && s.category.length ? '<div class="meta">' + s.category.map(esc).join(" · ") + '</div>' : "") +
+    '<div class="btnrow">' +
+      (tel ? '<a class="call" href="' + tel + '">Call</a>' : '') +
+      (wa ? '<a class="wa" href="' + wa + '" target="_blank">WhatsApp</a>' : '') +
+      '<button data-edit-supplier="' + s.id + '" style="border:1px solid var(--hairline);background:var(--card);color:var(--ink)">Edit</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderMovementRow(m){
+  const item = state.stockItems.find(i => i.id === m.itemId);
+  return '<tr>' +
+    '<td>' + (m.date ? fmtDateISO(m.date) : "—") + '</td>' +
+    '<td style="font-weight:700">' + esc(item ? item.name : "—") + '</td>' +
+    '<td style="color:var(--ink-soft)">' + esc(m.type) + '</td>' +
+    '<td style="color:var(--ink-soft)">' + esc(m.location || "—") + '</td>' +
+    '<td class="right">' + m.qty + '</td>' +
+    '<td style="color:var(--ink-soft)">' + esc(m.loggedBy || "—") + '</td>' +
+  '</tr>';
+}
+
+function openStockMoveModal(itemId){
+  document.getElementById("moveItemSelect").innerHTML = state.stockItems.map(i => '<option value="'+i.id+'">'+esc(i.name)+'</option>').join("");
+  if(itemId) document.getElementById("moveItemSelect").value = itemId;
+  document.getElementById("moveType").innerHTML = MOVE_TYPES.map(t => '<option>'+t+'</option>').join("");
+  document.getElementById("moveSupplier").innerHTML = '<option value="">—</option>' + state.suppliers.map(s => '<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+  document.getElementById("moveFamily").innerHTML = '<option value="">—</option>' + state.cases.map(c => '<option value="'+c.id+'">'+esc(c.family)+'</option>').join("");
+  document.getElementById("moveQty").value = "";
+  document.getElementById("moveDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("moveUnitCost").value = "";
+  document.getElementById("moveReceiptInput").value = "";
+  document.getElementById("moveLoggedBy").value = "";
+  document.getElementById("moveNotes").value = "";
+  document.getElementById("moveStatus").textContent = "";
+  toggleMoveFields();
+  document.getElementById("stockMoveOverlay").classList.add("open");
+}
+function toggleMoveFields(){
+  const type = document.getElementById("moveType").value;
+  document.getElementById("moveLocationField").style.display = MOVE_TYPES_NEEDING_LOCATION.includes(type) ? "" : "none";
+  document.getElementById("moveSupplierField").style.display = type === "Delivery In" ? "" : "none";
+  document.getElementById("moveCostField").style.display = type === "Delivery In" ? "" : "none";
+  document.getElementById("moveReceiptField").style.display = type === "Delivery In" ? "" : "none";
+  document.getElementById("moveFamilyField").style.display = type === "Used on Job" ? "" : "none";
+}
+document.getElementById("moveType").addEventListener("change", toggleMoveFields);
+document.getElementById("stockMoveClose").addEventListener("click", () => document.getElementById("stockMoveOverlay").classList.remove("open"));
+document.getElementById("stockMoveOverlay").addEventListener("click", e => { if(e.target.id === "stockMoveOverlay") document.getElementById("stockMoveOverlay").classList.remove("open"); });
+document.getElementById("moveSaveBtn").addEventListener("click", async () => {
+  const status = document.getElementById("moveStatus");
+  const itemId = document.getElementById("moveItemSelect").value;
+  const item = state.stockItems.find(i => i.id === itemId);
+  const type = document.getElementById("moveType").value;
+  const location = document.getElementById("moveLocation").value;
+  const qty = document.getElementById("moveQty").value;
+  const date = document.getElementById("moveDate").value;
+  const supplierId = document.getElementById("moveSupplier").value;
+  const familyId = document.getElementById("moveFamily").value;
+  const unitCost = document.getElementById("moveUnitCost").value;
+  const receiptFile = document.getElementById("moveReceiptInput").files[0];
+  const loggedBy = document.getElementById("moveLoggedBy").value;
+  const notes = document.getElementById("moveNotes").value;
+  if(!itemId){ status.textContent = "Choose an item."; status.className = "save-status err"; return; }
+  if(!qty || Number(qty) <= 0){ status.textContent = "Enter a qty."; status.className = "save-status err"; return; }
+  if(!date){ status.textContent = "Enter a date."; status.className = "save-status err"; return; }
+  if(MOVE_TYPES_NEEDING_LOCATION.includes(type) && !location){ status.textContent = "Choose a location."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    const data = await logStockMovement({
+      item_id: itemId, item_name: item ? item.name : "", type, location,
+      qty, date, supplier_id: supplierId || null, family_id: familyId || null,
+      unit_cost: unitCost || null, logged_by: loggedBy, notes
+    });
+    if(receiptFile) await uploadFile(data.id, "Receipt Photo", null, receiptFile);
+    document.getElementById("stockMoveOverlay").classList.remove("open");
+    await loadStock(); render();
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+});
+
+function openStockItemModal(item){
+  state.stockItemEditingId = item ? item.id : null;
+  document.getElementById("stockItemModalTitle").textContent = item ? "Edit stock item" : "Add stock item";
+  document.getElementById("siCategory").innerHTML = STOCK_CATEGORIES.map(c => '<option>'+c+'</option>').join("");
+  document.getElementById("siUnit").innerHTML = STOCK_UNITS.map(u => '<option>'+u+'</option>').join("");
+  document.getElementById("siSupplierContact").innerHTML = '<option value="">—</option>' + state.suppliers.map(s => '<option value="'+s.id+'">'+esc(s.name)+'</option>').join("");
+  document.getElementById("siName").value = item ? item.name : "";
+  if(item && item.category) document.getElementById("siCategory").value = item.category;
+  if(item && item.unit) document.getElementById("siUnit").value = item.unit;
+  document.getElementById("siReorder").value = item ? item.reorderThreshold : "";
+  document.getElementById("siUnitCost").value = item ? item.unitCost : "";
+  document.getElementById("siSupplierContact").value = item ? (item.supplierContactId || "") : "";
+  document.getElementById("siSupplierText").value = item ? item.supplierText : "";
+  document.getElementById("stockItemStatus").textContent = "";
+  document.getElementById("stockItemOverlay").classList.add("open");
+}
+document.getElementById("stockItemClose").addEventListener("click", () => document.getElementById("stockItemOverlay").classList.remove("open"));
+document.getElementById("stockItemOverlay").addEventListener("click", e => { if(e.target.id === "stockItemOverlay") document.getElementById("stockItemOverlay").classList.remove("open"); });
+document.getElementById("stockItemSaveBtn").addEventListener("click", async () => {
+  const status = document.getElementById("stockItemStatus");
+  const name = document.getElementById("siName").value.trim();
+  if(!name){ status.textContent = "Enter a name."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    await saveStockItem({
+      id: state.stockItemEditingId,
+      name,
+      category: document.getElementById("siCategory").value,
+      unit: document.getElementById("siUnit").value,
+      reorderThreshold: document.getElementById("siReorder").value,
+      unitCost: document.getElementById("siUnitCost").value,
+      supplierContactId: document.getElementById("siSupplierContact").value || null,
+      supplierText: document.getElementById("siSupplierText").value
+    });
+    document.getElementById("stockItemOverlay").classList.remove("open");
+    await loadStock(); render();
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+});
+
+function openSupplierModal(sup){
+  state.supplierEditingId = sup ? sup.id : null;
+  document.getElementById("supplierModalTitle").textContent = sup ? "Edit supplier" : "Add supplier";
+  document.getElementById("supName").value = sup ? sup.name : "";
+  document.getElementById("supPhone").value = sup ? sup.phone : "";
+  document.getElementById("supEmail").value = sup ? sup.email : "";
+  document.getElementById("supTown").value = sup ? sup.town : "";
+  document.getElementById("supNotes").value = sup ? sup.notes : "";
+  document.querySelectorAll("#supCategoryChecks input").forEach(cb => { cb.checked = !!(sup && sup.category && sup.category.includes(cb.value)); });
+  document.getElementById("supplierStatus").textContent = "";
+  document.getElementById("supplierOverlay").classList.add("open");
+}
+document.getElementById("supplierClose").addEventListener("click", () => document.getElementById("supplierOverlay").classList.remove("open"));
+document.getElementById("supplierOverlay").addEventListener("click", e => { if(e.target.id === "supplierOverlay") document.getElementById("supplierOverlay").classList.remove("open"); });
+document.getElementById("supplierSaveBtn").addEventListener("click", async () => {
+  const status = document.getElementById("supplierStatus");
+  const name = document.getElementById("supName").value.trim();
+  if(!name){ status.textContent = "Enter a name."; status.className = "save-status err"; return; }
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    await saveSupplier({
+      id: state.supplierEditingId,
+      name,
+      phone: document.getElementById("supPhone").value,
+      email: document.getElementById("supEmail").value,
+      town: document.getElementById("supTown").value,
+      notes: document.getElementById("supNotes").value,
+      category: Array.from(document.querySelectorAll("#supCategoryChecks input:checked")).map(cb => cb.value),
+      active: true
+    });
+    document.getElementById("supplierOverlay").classList.remove("open");
+    await loadStock(); render();
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+});
 
 /* ---------- Screen: Calendar ---------- */
 function renderCalendar(){
@@ -2504,7 +2881,7 @@ document.getElementById("searchInput").addEventListener("keydown", e => {
 /* ---------- Router ---------- */
 const SCREEN_RENDERERS = {
   dash: renderDash, pipeline: renderPipeline, list: renderList, production: renderProduction,
-  calendar: renderCalendar, messages: renderMessages, invoices: renderInvoices,
+  stock: renderStock, calendar: renderCalendar, messages: renderMessages, invoices: renderInvoices,
   reports: renderReports, mobile: renderMobile, settings: renderSettings
 };
 function render(){
