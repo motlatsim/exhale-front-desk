@@ -1064,7 +1064,7 @@ function renderDash(){
           ).join("") : '<div class="empty-state">No open families yet.</div>') +
           '</div>' +
         '</section>' +
-        '<div class="unveil-card">' +
+        '<div class="unveil-card"' + (upcoming ? ' data-open="' + upcoming.c.id + '" style="cursor:pointer"' : '') + '>' +
           '<div class="kicker">Coming up</div>' +
           (upcoming ?
             '<div class="name">' + esc(upcoming.c.family) + ' · ' + fmtDate(upcoming.d) + '</div>' +
