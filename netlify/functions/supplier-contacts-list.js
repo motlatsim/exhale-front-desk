@@ -4,6 +4,7 @@
 // "Suppliers" database which tracks item-by-item procurement research.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-query-all");
 
 const SUPPLIER_CONTACTS_DATABASE_ID = "bf0e65e02f2e43bcb1e4ccefeeeb094f";
 
@@ -15,19 +16,16 @@ exports.handler = async function (event) {
   if (!token) return { statusCode: 500, body: JSON.stringify({ error: "NOTION_API_KEY not set" }) };
 
   try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${SUPPLIER_CONTACTS_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ sorts: [{ property: "Name", direction: "ascending" }], page_size: 100 })
-    });
-    const data = await res.json();
-    if (!res.ok) return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
+    const notionHeaders = {
+      "Authorization": `Bearer ${token}`,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json"
+    };
+    const pages = await notionQueryAll(SUPPLIER_CONTACTS_DATABASE_ID, {
+      sorts: [{ property: "Name", direction: "ascending" }]
+    }, notionHeaders);
 
-    const suppliers = (data.results || []).map(page => {
+    const suppliers = pages.map(page => {
       const p = page.properties || {};
       const title = p["Name"] && p["Name"].title;
       return {
@@ -44,6 +42,6 @@ exports.handler = async function (event) {
 
     return { statusCode: 200, body: JSON.stringify({ suppliers }) };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: err.statusCode || 500, body: JSON.stringify({ error: err.message }) };
   }
 };

@@ -4,6 +4,7 @@
 // it just calls this function. Replaces the old pipedrive-data.js.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-query-all");
 
 const NOTION_DATABASE_ID = "809dabc9-23dc-4932-9dee-525adb153223";
 
@@ -18,26 +19,17 @@ exports.handler = async function (event, context) {
   }
 
   try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        sorts: [{ property: "Submitted At", direction: "descending" }],
-        page_size: 100
-      })
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
-    }
+    const notionHeaders = {
+      "Authorization": `Bearer ${token}`,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json"
+    };
+    const pages = await notionQueryAll(NOTION_DATABASE_ID, {
+      sorts: [{ property: "Submitted At", direction: "descending" }]
+    }, notionHeaders);
 
     // Flatten Notion's verbose property format into something simple for the frontend
-    const enquiries = (data.results || []).map(page => {
+    const enquiries = pages.map(page => {
       const p = page.properties || {};
       const title = p["Name"] && p["Name"].title;
       const name = title && title.length ? title.map(t => t.plain_text).join("") : "Unknown";
@@ -108,12 +100,14 @@ exports.handler = async function (event, context) {
         checklist_polished: !!(p["Checklist Polished"] && p["Checklist Polished"].checkbox),
         tracker_token: richText("Tracker Token"),
         lost_reason: (p["Lost Reason"] && p["Lost Reason"].select && p["Lost Reason"].select.name) || "",
-        lost_reason_detail: richText("Lost Reason Detail")
+        lost_reason_detail: richText("Lost Reason Detail"),
+        lead_source: (p["Lead Source"] && p["Lead Source"].select && p["Lead Source"].select.name) || "",
+        referred_by: richText("Referred By")
       };
     });
 
     return { statusCode: 200, body: JSON.stringify({ enquiries }) };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: err.statusCode || 500, body: JSON.stringify({ error: err.message }) };
   }
 };

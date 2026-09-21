@@ -242,6 +242,34 @@
   .town-row .fill{height:100%;background:var(--slate)}
   .dur-row{display:flex;justify-content:space-between;font-size:12.5px;border-bottom:1px solid var(--hairline-soft);padding-bottom:8px;margin-bottom:10px}
   .dur-row span:last-child{font-weight:700}
+  .health-rule{border-bottom:1px solid var(--hairline-soft);padding:10px 0}
+  .health-rule:last-child{border-bottom:none}
+  .health-rule .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;font-weight:700}
+  .health-rule .row span:last-child{color:var(--rust);font-weight:800}
+  .health-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .health-chip{border:1px solid var(--hairline);background:var(--panel);border-radius:8px;padding:4px 9px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .health-chip:hover{border-color:var(--rust);color:var(--rust)}
+  .mat-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .mat-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-soft);font-weight:700;padding:0 8px 8px 0}
+  .mat-table td{padding:8px 8px 8px 0;border-top:1px solid var(--hairline-soft);cursor:pointer}
+  .mat-table tr:hover td{color:var(--green-deep)}
+  .mat-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .mat-table td.neg{color:var(--rust)}
+  .mat-table td.muted{color:var(--ink-soft);font-style:italic}
+  .watch-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--hairline-soft);cursor:pointer}
+  .watch-row:last-child{border-bottom:none}
+  .watch-row:hover{background:var(--panel)}
+  .watch-row .fam{flex:1;min-width:0}
+  .watch-row .fam .n{font-weight:700;font-size:13px}
+  .watch-row .fam .s{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+  .watch-row .days{font-size:12px;font-weight:800;text-align:right;white-space:nowrap}
+  .risk-tag{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:3px 7px;border-radius:6px;white-space:nowrap}
+  .risk-tag.urgent{background:var(--rust-pale);color:var(--rust)}
+  .risk-tag.at-risk{background:rgba(201,138,32,.16);color:var(--amber)}
+  .risk-tag.on-track{background:rgba(32,201,151,.14);color:var(--green-deep)}
+  .cash-method-row{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;padding:7px 0;border-bottom:1px solid var(--hairline-soft)}
+  .cash-method-row:last-child{border-bottom:none}
+  .gated-note{padding:20px 0;text-align:center;color:var(--ink-soft);font-size:12.5px}
 
   /* Mobile */
   .phone-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
@@ -538,6 +566,10 @@
         <select id="aTown"><option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option><option>Flagstaff</option><option>Other</option></select>
       </div>
     </div>
+    <div class="field-row">
+      <div class="field"><label>How did they hear about us?</label><select id="aLeadSource"></select></div>
+      <div class="field" id="aReferredByField"><label>Referred by</label><input id="aReferredBy" placeholder="Name of person or funeral home"></div>
+    </div>
     <div class="field"><label>Message / notes</label><textarea id="aMessage" placeholder="What are they after?"></textarea></div>
     <div class="modal-actions">
       <button class="btn-accent" id="addSaveBtn">Add family</button>
@@ -767,6 +799,19 @@ const STAGE_COLOR = {
 };
 const LOST_REASONS = ["Price too high","Chose a competitor","Went cold / unresponsive","No longer needed","Financing fell through","Timing not right","Other"];
 const TOWNS = ["Lusikisiki","Port St Johns","Flagstaff","Other"];
+const LEAD_SOURCES = ["Website form","WhatsApp (Peach)","Walk-in","Referral","Funeral home","Facebook","Other"];
+const LEAD_SOURCES_NEEDING_REFERRER = ["Referral","Funeral home"];
+const PROD_STAGE_ORDER = STAGES.filter(s => s !== "Lost");
+const REPORTS = {
+  MIN_N: 5,
+  UPDATE_STALE_DAYS: 14,
+  SIGNOFF_STALE_DAYS: 5,
+  UNVEILING_WINDOW_DAYS: 60,
+  UNVEILING_AT_RISK_DAYS: 14,
+  UNVEILING_URGENT_DAYS: 7,
+  CASH_MONTHS: 6,
+  CONSUMPTION_MONTHS: 6
+};
 const INTERESTS = ["Tombstones","Plaques","Grave Restorations","Memorial Books","Not sure yet"];
 const PAYMENT_OPTIONS = ["Laybuy","Credit","Insurance Policy","Once-off Settlement"];
 const CREDIT_STATUSES = ["Not Applied","Applied","Approved","Declined","Active","Settled"];
@@ -805,7 +850,7 @@ const NAV = [
 ];
 
 /* ---------- State ---------- */
-const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null, stockItems:[], stockMovements:[], suppliers:[], stockItemEditingId:null, supplierEditingId:null };
+const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null, stockItems:[], stockMovements:[], suppliers:[], stockItemEditingId:null, supplierEditingId:null, stageLog:[], stageLogError:"", payments:[], paymentsError:"" };
 const IS_TOUCH = (typeof window !== "undefined") && (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
 
 /* ---------- Helpers ---------- */
@@ -925,6 +970,8 @@ function normalize(e){
     trackerToken: e.tracker_token || "",
     lostReason: e.lost_reason || "",
     lostReasonDetail: e.lost_reason_detail || "",
+    leadSource: e.lead_source || "",
+    referredBy: e.referred_by || "",
     submittedAt: submitted,
     updatedAt: e.updated_at || submitted,
     days: daysSince(submitted) || 0,
@@ -1005,6 +1052,32 @@ function lowStockItems(){
   return state.stockItems.filter(i => i.stockStatus === "Low Stock" || (i.reorderThreshold > 0 && i.currentStock <= i.reorderThreshold));
 }
 
+async function loadStageLog(){
+  try{
+    const resp = await apiFetch("/.netlify/functions/stage-log-list");
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || "Stage log error " + resp.status);
+    state.stageLog = (data.entries || []).filter(x => !x.baseline);
+    state.stageLogError = "";
+  }catch(err){
+    state.stageLog = [];
+    state.stageLogError = err.message;
+  }
+}
+
+async function loadPayments(){
+  try{
+    const resp = await apiFetch("/.netlify/functions/payments-list");
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || "Payments error " + resp.status);
+    state.payments = data.payments || [];
+    state.paymentsError = "";
+  }catch(err){
+    state.payments = [];
+    state.paymentsError = err.message;
+  }
+}
+
 async function loadAll(){
   const banner = document.getElementById("errorBanner");
   banner.classList.remove("show");
@@ -1017,6 +1090,8 @@ async function loadAll(){
   await loadConversations();
   await loadCatalog();
   await loadStock();
+  await loadStageLog();
+  await loadPayments();
   render();
 }
 
@@ -1826,6 +1901,136 @@ function renderCreditPanel(){
 }
 
 /* ---------- Screen: Reports ---------- */
+/* ---------- Reports: Phase 1 helpers ---------- */
+function gatedPanel(title, n, min, renderFn){
+  if(n < min){
+    return '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">' + esc(title) + '</h2>' +
+      '<div class="gated-note">' + n + ' of ' + min + ' needed</div>' +
+    '</section>';
+  }
+  return renderFn();
+}
+
+function paymentsForFamily(familyId){
+  return state.payments.filter(p => p.familyId === familyId);
+}
+
+function dataHealthRules(){
+  const rules = [
+    { label:"Deposit Confirmed with no deposit recorded", test:c => c.stage === "Deposit Confirmed" && !c.deposit },
+    { label:"Phone number looks invalid", test:c => c.stage !== "Lost" && !c.phoneValid },
+    { label:"Quoted but no estimate number", test:c => c.value > 0 && !c.estimateNumber },
+    { label:"Sign-off sent more than " + REPORTS.SIGNOFF_STALE_DAYS + " days ago with no response", test:c => c.signoffStatus === "Sent" && daysSince(c.updatedAt) > REPORTS.SIGNOFF_STALE_DAYS },
+    { label:"Live family with no update in " + REPORTS.UPDATE_STALE_DAYS + " days", test:c => c.stage !== "Lost" && daysSince(c.updatedAt) > REPORTS.UPDATE_STALE_DAYS },
+    { label:"Installation stage or later with no installed date", test:c => c.stage !== "Lost" && PROD_STAGE_ORDER.indexOf(c.stage) >= PROD_STAGE_ORDER.indexOf("Installation") && !c.installedDate },
+    { label:"Missing town", test:c => c.stage !== "Lost" && !c.town },
+    { label:"Missing lead source", test:c => !c.leadSource },
+    { label:"Payments Ledger total doesn't match Amount Paid", test:c => {
+        if(state.paymentsError) return false;
+        const total = paymentsForFamily(c.id).reduce((a,p) => a + p.amount, 0);
+        return Math.abs(total - c.paid) > 1;
+      }
+    }
+  ];
+  return rules.map(r => ({ label:r.label, matches: state.cases.filter(r.test) })).filter(r => r.matches.length);
+}
+
+function materialsByFamily(){
+  const usedOnJob = state.stockMovements.filter(m => m.type === "Used on Job" && m.familyId);
+  const byFamily = {};
+  usedOnJob.forEach(m => {
+    const item = state.stockItems.find(i => i.id === m.itemId);
+    const unitCost = m.unitCost > 0 ? m.unitCost : ((item && item.unitCost) || 0);
+    const hasCost = m.unitCost > 0 || (item && item.unitCost > 0);
+    if(!byFamily[m.familyId]) byFamily[m.familyId] = { cost:0, hasAnyCost:false };
+    byFamily[m.familyId].cost += m.qty * unitCost;
+    if(hasCost) byFamily[m.familyId].hasAnyCost = true;
+  });
+  return byFamily;
+}
+
+function last6Months(n){
+  const now = new Date();
+  const months = [];
+  for(let i=(n||6)-1;i>=0;i--){ months.push(new Date(now.getFullYear(), now.getMonth()-i, 1)); }
+  return months;
+}
+function monthIndexFor(months, dateStr){
+  if(!dateStr) return -1;
+  const d = parseLooseDate(dateStr) || new Date(dateStr);
+  if(!d || isNaN(d.getTime())) return -1;
+  return months.findIndex(mm => mm.getFullYear()===d.getFullYear() && mm.getMonth()===d.getMonth());
+}
+
+function consumptionByItemMonth(){
+  const months = last6Months(REPORTS.CONSUMPTION_MONTHS);
+  const usedOnJob = state.stockMovements.filter(m => m.type === "Used on Job");
+  const items = {};
+  usedOnJob.forEach(m => {
+    const mi = monthIndexFor(months, m.date);
+    if(mi === -1) return;
+    const item = state.stockItems.find(i => i.id === m.itemId);
+    const name = item ? item.name : "Unknown item";
+    if(!items[name]) items[name] = months.map(() => 0);
+    items[name][mi] += m.qty;
+  });
+  return { months, items };
+}
+
+function wastageByItem(){
+  const byItem = {};
+  state.stockMovements.forEach(m => {
+    if(!byItem[m.itemId]) byItem[m.itemId] = { lostDamaged:0, adjustDown:0, deliveryIn:0 };
+    if(m.type === "Lost or Damaged") byItem[m.itemId].lostDamaged += m.qty;
+    if(m.type === "Adjustment Down") byItem[m.itemId].adjustDown += m.qty;
+    if(m.type === "Delivery In") byItem[m.itemId].deliveryIn += m.qty;
+  });
+  return Object.keys(byItem).map(id => {
+    const item = state.stockItems.find(i => i.id === id);
+    const b = byItem[id];
+    return {
+      name: item ? item.name : "Unknown item",
+      wastage: b.deliveryIn > 0 ? (b.lostDamaged + b.adjustDown) / b.deliveryIn : null,
+      lostDamaged: b.lostDamaged, adjustDown: b.adjustDown, deliveryIn: b.deliveryIn
+    };
+  }).filter(x => x.deliveryIn > 0 || x.lostDamaged > 0 || x.adjustDown > 0);
+}
+
+function cashCollectedByMonth(){
+  const months = last6Months(REPORTS.CASH_MONTHS);
+  const totals = months.map(() => 0);
+  state.payments.forEach(p => {
+    const mi = monthIndexFor(months, p.date);
+    if(mi > -1) totals[mi] += p.amount;
+  });
+  return { months, totals };
+}
+function cashCollectedByMethod(){
+  const totals = {};
+  PAYMENT_METHODS.forEach(m => totals[m] = 0);
+  state.payments.forEach(p => { totals[p.method || "Unknown"] = (totals[p.method || "Unknown"] || 0) + p.amount; });
+  return totals;
+}
+
+function unveilingWatchList(){
+  const now = Date.now();
+  const readyIdx = PROD_STAGE_ORDER.indexOf("Ready to Install");
+  return liveCases().map(c => {
+    const d = parseLooseDate(c.unveiling);
+    if(!d) return null;
+    const diffDays = Math.round((d.getTime() - now) / 86400000);
+    if(diffDays < 0 || diffDays > REPORTS.UNVEILING_WINDOW_DAYS) return null;
+    const installed = !!c.installedDate;
+    const prodIdx = PROD_STAGE_ORDER.indexOf(c.stage);
+    let risk = "on-track";
+    if(diffDays <= REPORTS.UNVEILING_URGENT_DAYS && !installed) risk = "urgent";
+    else if(diffDays <= REPORTS.UNVEILING_AT_RISK_DAYS && prodIdx < readyIdx) risk = "at-risk";
+    const checklistDone = CHECKLIST_STEPS.filter(s => c[s.key]).length;
+    return { c, date:d, diffDays, risk, checklistDone };
+  }).filter(Boolean).sort((a,b) => a.diffDays - b.diffDays);
+}
+
 function renderReports(){
   const el = document.getElementById("screen-reports");
   const now = new Date();
@@ -1850,6 +2055,90 @@ function renderReports(){
   const lostCases = state.cases.filter(c => c.stage === "Lost");
   const lostCounts = LOST_REASONS.map(r => ({ reason:r, n: lostCases.filter(c=>c.lostReason===r).length })).filter(r => r.n > 0);
   const maxLost = Math.max(1, ...lostCounts.map(r=>r.n));
+
+  const healthRules = dataHealthRules();
+  const healthHtml = '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Data health</h2>' +
+      '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Records worth a second look — click a family to open it</div>' +
+      '<div style="margin-top:10px">' + (healthRules.length ? healthRules.map(r =>
+        '<div class="health-rule"><div class="row"><span>' + esc(r.label) + '</span><span>' + r.matches.length + '</span></div>' +
+        '<div class="health-chips">' + r.matches.slice(0,12).map(c => '<button class="health-chip" data-open="' + esc(c.id) + '">' + esc(c.family) + '</button>').join("") +
+          (r.matches.length > 12 ? '<span class="health-chip" style="cursor:default">+' + (r.matches.length-12) + ' more</span>' : "") +
+        '</div></div>'
+      ).join("") : '<div class="empty-state">No data issues found.</div>') + '</div>' +
+    '</section>';
+
+  const matByFamily = materialsByFamily();
+  const matRows = Object.keys(matByFamily).map(fid => {
+    const c = state.cases.find(x => x.id === fid);
+    if(!c) return null;
+    const m = matByFamily[fid];
+    const margin = c.value - m.cost;
+    const marginPct = c.value > 0 ? Math.round((margin / c.value) * 100) : null;
+    return { c, cost:m.cost, hasAnyCost:m.hasAnyCost, margin, marginPct };
+  }).filter(Boolean).sort((a,b) => b.cost - a.cost);
+  const matHtml = '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Materials per job</h2>' +
+      '<div style="font-size:12px;color:var(--ink-soft);margin-top:3px">Materials only, excludes labour and transport</div>' +
+      '<div style="margin-top:12px;overflow-x:auto">' + (matRows.length ?
+        '<table class="mat-table"><thead><tr><th>Family</th><th class="num">Quoted</th><th class="num">Materials</th><th class="num">Margin</th></tr></thead><tbody>' +
+        matRows.map(r => '<tr data-open="' + esc(r.c.id) + '"><td>' + esc(r.c.family) + '</td>' +
+          '<td class="num">' + ZAR(r.c.value) + '</td>' +
+          (r.hasAnyCost ? '<td class="num">' + ZAR(r.cost) + '</td><td class="num' + (r.margin < 0 ? ' neg' : '') + '">' + ZAR(r.margin) + (r.marginPct !== null ? ' (' + r.marginPct + '%)' : '') + '</td>'
+            : '<td class="num muted" colspan="2">no cost recorded</td>') +
+        '</tr>').join("") + '</tbody></table>'
+        : '<div class="empty-state">No materials logged against a family yet.</div>') + '</div>' +
+    '</section>';
+
+  const { months: consMonths, items: consItems } = consumptionByItemMonth();
+  const consNames = Object.keys(consItems).sort();
+  const wastage = wastageByItem().sort((a,b) => (b.wastage||0) - (a.wastage||0));
+  const consHtml = '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Consumption by item, last ' + consMonths.length + ' months</h2>' +
+      '<div style="margin-top:12px;overflow-x:auto">' + (consNames.length ?
+        '<table class="mat-table"><thead><tr><th>Item</th>' + consMonths.map(m => '<th class="num">' + m.toLocaleDateString("en-ZA",{month:"short"}) + '</th>').join("") + '</tr></thead><tbody>' +
+        consNames.map(name => '<tr><td>' + esc(name) + '</td>' + consItems[name].map(q => '<td class="num">' + (q || "—") + '</td>').join("") + '</tr>').join("") +
+        '</tbody></table>' : '<div class="empty-state">No "Used on Job" movements logged yet.</div>') + '</div>' +
+      '<div style="height:1px;background:var(--hairline-soft);margin:16px 0"></div>' +
+      '<h2 class="h2" style="font-size:15px">Wastage by item</h2>' +
+      '<div style="font-size:12px;color:var(--ink-soft);margin-top:3px">(Lost or Damaged + Adjustment Down) ÷ Delivery In</div>' +
+      '<div style="margin-top:12px">' + (wastage.length ? wastage.map(w =>
+        '<div class="dur-row"><span>' + esc(w.name) + '</span><span>' + (w.wastage === null ? "no deliveries logged" : Math.round(w.wastage*1000)/10 + "%") + '</span></div>'
+      ).join("") : '<div class="empty-state">No wastage-relevant movements yet.</div>') + '</div>' +
+    '</section>';
+
+  const { months: cashMonths, totals: cashTotals } = cashCollectedByMonth();
+  const maxCash = Math.max(1, ...cashTotals);
+  const cashByMethod = cashCollectedByMethod();
+  const cashHtml = '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Cash collected</h2>' +
+      '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">' + (state.paymentsError ? "Couldn't load the payments ledger." : "From the Payments Ledger, last " + cashMonths.length + " months") + '</div>' +
+      (state.paymentsError ? '' :
+      '<div class="chart-row" style="height:140px">' + cashMonths.map((m,i) =>
+        '<div class="chart-col"><div class="chart-total">' + (cashTotals[i] ? ZAR(cashTotals[i]) : "—") + '</div>' +
+        '<div class="chart-bar" style="height:' + Math.round((cashTotals[i]/maxCash)*100) + '%"><div class="won" style="height:100%"></div></div>' +
+        '<div class="chart-month">' + m.toLocaleDateString("en-ZA",{month:"short"}) + '</div></div>'
+      ).join("") + '</div>' +
+      '<div style="height:1px;background:var(--hairline-soft);margin:16px 0"></div>' +
+      '<div style="font-size:13px;font-weight:700;margin-bottom:6px">By method</div>' +
+      Object.keys(cashByMethod).filter(m => cashByMethod[m] > 0).map(m =>
+        '<div class="cash-method-row"><span>' + esc(m) + '</span><span>' + ZAR(cashByMethod[m]) + '</span></div>'
+      ).join("") ) +
+      (!state.paymentsError && !state.payments.length ? '<div class="empty-state">No payments logged yet.</div>' : '') +
+    '</section>';
+
+  const watchList = unveilingWatchList();
+  const watchHtml = '<section class="panel" style="padding:18px">' +
+      '<h2 class="h2" style="font-size:15px">Unveiling watch</h2>' +
+      '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Unveilings in the next ' + REPORTS.UNVEILING_WINDOW_DAYS + ' days · at risk at ' + REPORTS.UNVEILING_AT_RISK_DAYS + ' days if not yet Ready to Install · urgent at ' + REPORTS.UNVEILING_URGENT_DAYS + ' days if not installed</div>' +
+      '<div style="margin-top:8px">' + (watchList.length ? watchList.map(w =>
+        '<div class="watch-row" data-open="' + esc(w.c.id) + '">' +
+          '<div class="fam"><div class="n">' + esc(w.c.family) + '</div><div class="s">' + esc(w.c.stage) + ' · checklist ' + w.checklistDone + '/' + CHECKLIST_STEPS.length + '</div></div>' +
+          '<span class="risk-tag ' + w.risk + '">' + (w.risk === "on-track" ? "On track" : w.risk === "at-risk" ? "At risk" : "Urgent") + '</span>' +
+          '<div class="days">' + (w.diffDays === 0 ? "Today" : w.diffDays === 1 ? "1 day" : w.diffDays + " days") + '</div>' +
+        '</div>'
+      ).join("") : '<div class="empty-state">No unveilings in the next ' + REPORTS.UNVEILING_WINDOW_DAYS + ' days.</div>') + '</div>' +
+    '</section>';
 
   el.innerHTML = '<div class="rep-grid">' +
     '<section class="panel" style="padding:18px">' +
@@ -1885,7 +2174,12 @@ function renderReports(){
         ).join("") : '<div class="empty-state">No lost families with a reason yet.</div>') + '</div>' +
       '</section>' +
     '</div>' +
-  '</div>';
+  '</div>' +
+  '<div class="rep-grid">' + healthHtml + watchHtml + '</div>' +
+  '<div class="rep-grid">' + matHtml + consHtml + '</div>' +
+  cashHtml;
+
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
 }
 
 /* ---------- Screen: On the road ---------- */
@@ -2128,6 +2422,12 @@ function renderDrawer(){
           '</select></div>' +
           '<div class="field"><label>Unveiling</label><input id="fUnveiling" value="' + esc(c.unveiling) + '" placeholder="e.g. 26 Sep 2026"></div>' +
         '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>How did they hear about us?</label><select id="fLeadSource"><option value="">Unknown</option>' +
+            LEAD_SOURCES.map(s => '<option value="' + esc(s) + '"' + (s===c.leadSource?" selected":"") + '>' + esc(s) + '</option>').join("") +
+          '</select></div>' +
+          '<div class="field" id="fReferredByField"><label>Referred by</label><input id="fReferredBy" value="' + esc(c.referredBy) + '" placeholder="Name of person or funeral home"></div>' +
+        '</div>' +
         '<div class="field"><label>Memorial spec</label><textarea id="fMemorialSpec" placeholder="Material, size, finish, wording, engraving — e.g. granite double, black polished, sandblast-engraved lettering">' + esc(c.memorialSpec) + '</textarea></div>' +
         '<div class="field-row">' +
           '<div class="field"><label>Value quoted (R)</label><input type="number" id="fValue" value="' + (c.value || "") + '">' +
@@ -2289,6 +2589,8 @@ function renderDrawer(){
   if(copyTrackerBtn) copyTrackerBtn.addEventListener("click", () => copyTrackerLink(c));
 
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
+  toggleReferredByField("fLeadSource","fReferredByField");
+  document.getElementById("fLeadSource").addEventListener("change", () => toggleReferredByField("fLeadSource","fReferredByField"));
   document.getElementById("viewEstimateBtn").addEventListener("click", () => viewDocument(c, "Estimate"));
   document.getElementById("viewInvoiceBtn").addEventListener("click", () => viewDocument(c, "Invoice"));
   document.getElementById("drawerStageSelect").addEventListener("change", async e => {
@@ -2340,6 +2642,8 @@ function renderDrawer(){
       town: document.getElementById("fTown").value,
       interest: document.getElementById("fInterest").value,
       unveiling: document.getElementById("fUnveiling").value.trim(),
+      lead_source: document.getElementById("fLeadSource").value,
+      referred_by: document.getElementById("fReferredBy").value.trim(),
       memorial_spec: document.getElementById("fMemorialSpec").value.trim(),
       quoted_value: document.getElementById("fValue").value,
       amount_paid: document.getElementById("fPaid").value,
@@ -2914,10 +3218,18 @@ function renderPrintDoc(c, type){
 }
 
 /* ---------- New family modal ---------- */
+document.getElementById("aLeadSource").innerHTML = '<option value="">—</option>' + LEAD_SOURCES.map(s => '<option>' + esc(s) + '</option>').join("");
+function toggleReferredByField(selectId, fieldId){
+  const val = document.getElementById(selectId).value;
+  document.getElementById(fieldId).style.display = LEAD_SOURCES_NEEDING_REFERRER.includes(val) ? "" : "none";
+}
+document.getElementById("aLeadSource").addEventListener("change", () => toggleReferredByField("aLeadSource","aReferredByField"));
 document.getElementById("newFamilyBtn").addEventListener("click", () => {
-  ["aName","aPhone","aEmail","aMessage"].forEach(id => document.getElementById(id).value = "");
+  ["aName","aPhone","aEmail","aMessage","aReferredBy"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("aInterest").value = "Not sure yet";
   document.getElementById("aTown").value = "";
+  document.getElementById("aLeadSource").value = "";
+  toggleReferredByField("aLeadSource","aReferredByField");
   document.getElementById("addStatus").textContent = "";
   document.getElementById("addOverlay").classList.add("open");
 });
@@ -2937,7 +3249,9 @@ document.getElementById("addSaveBtn").addEventListener("click", async () => {
         email: document.getElementById("aEmail").value.trim(),
         interest: document.getElementById("aInterest").value,
         town: document.getElementById("aTown").value,
-        message: document.getElementById("aMessage").value.trim()
+        message: document.getElementById("aMessage").value.trim(),
+        lead_source: document.getElementById("aLeadSource").value,
+        referred_by: document.getElementById("aReferredBy").value.trim()
       })
     });
     const data = await res.json();
@@ -2971,7 +3285,138 @@ function render(){
   SCREEN_RENDERERS[state.screen]();
 }
 
+/* ---------- Demo fixtures (?demo=reports, after unlock only) ---------- */
+// Generates fixtures entirely client-side so Reports can be exercised at
+// realistic volume (200 families, 400 stock movements, 300 payments,
+// 2000 stage log rows) without touching Notion.
+function seededRandom(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function loadDemoFixtures(){
+  const rng = seededRandom(20260921);
+  const pick = arr => arr[Math.floor(rng() * arr.length)];
+  const randInt = (min, max) => min + Math.floor(rng() * (max - min + 1));
+  const now = Date.now();
+  const isoDaysAgo = d => new Date(now - d * 86400000).toISOString();
+  const firstNames = ["Thabo","Nomvula","Sipho","Zanele","Lindiwe","Mandla","Nomsa","Bongani","Thandeka","Sizwe","Ayanda","Nokuthula","Vuyo","Zodwa","Themba","Nozipho","Andile","Palesa"];
+  const lastNames = ["Molefe","Bangani","Makhaye","Dlamini","Ngcobo","Mahlangu","Zulu","Khumalo","Mokoena","Ndlovu","Gumede","Sithole"];
+
+  const N_FAMILIES = 200;
+  const cases = [];
+  for(let i=0;i<N_FAMILIES;i++){
+    const stage = pick(STAGES);
+    const submittedDaysAgo = randInt(1, 420);
+    const submittedAt = isoDaysAgo(submittedDaysAgo);
+    const value = stage === "Lead" ? 0 : randInt(3000, 60000);
+    const paid = (stage === "Lead" || stage === "Quotation") ? 0 : Math.round(value * (randInt(0,100)/100));
+    const leadSource = rng() < 0.12 ? "" : pick(LEAD_SOURCES);
+    const unveilDaysOut = randInt(-30, 100);
+    const contact = pick(firstNames) + " " + pick(lastNames);
+    const installedLikely = stage === "Installation" || stage === "After-Installation Service";
+    cases.push({
+      id:"demo-fam-"+i, url:"", contact, family: familyName(contact), initials: initials(contact),
+      phone: rng() < 0.05 ? "12345" : "082" + randInt(1000000,9999999), email:"",
+      interest: pick(INTERESTS), town: pick(TOWNS), stage, message:"", notes:"",
+      landmark:"", siteAccess:"", unveiling: rng() < 0.35 ? fmtDate(new Date(now + unveilDaysOut*86400000)) : "",
+      phoneValid: rng() >= 0.06, deposit: paid > 0,
+      depositDate: paid > 0 ? isoDaysAgo(randInt(1,300)) : "",
+      installedDate: installedLikely && rng() < 0.75 ? isoDaysAgo(randInt(0,60)) : "",
+      deceasedName:"", dateOfBirth:"", dateOfDeath:"", cemetery:"", plotNumber:"", locationPin:"",
+      value, paid, paymentOption: pick(PAYMENT_OPTIONS), paymentPlan:"", progress:0, assignedTo:"",
+      memorialSpec:"", estimateNumber: value > 0 && rng() < 0.85 ? "EST-DEMO-"+i : "", estimateDate:"",
+      invoiceNumber:"", invoiceDate:"", creditProvider:"", creditStatus:"", creditApprovedAmount:0, creditReference:"",
+      installments:[], proposalItems:[], designImages:[], referencePhotos:[],
+      signoffToken:"", signoffStatus: rng() < 0.15 ? "Sent" : (rng() < 0.4 ? "Approved" : ""), signoffDate:"", signoffNote:"",
+      terrainType:"", groundProfile:"",
+      checklistSlab: rng()<0.5, checklistStencil: rng()<0.4, checklistEngraved: rng()<0.3, checklistPolished: rng()<0.2,
+      trackerToken:"", lostReason: stage === "Lost" ? pick(LOST_REASONS) : "", lostReasonDetail:"",
+      leadSource, referredBy: (leadSource === "Referral" || leadSource === "Funeral home") ? pick(firstNames)+" "+pick(lastNames) : "",
+      submittedAt, updatedAt: isoDaysAgo(randInt(0, Math.min(14, submittedDaysAgo))),
+      days: daysSince(submittedAt) || 0, age: ageShort(submittedAt)
+    });
+  }
+
+  const itemNames = ["Rustenburg Granite Slab","Black Galaxy Granite","Cement 42.5N","River Sand","Stone Adhesive","Engraving Bits","Polishing Pads","Sealant","Fence Mesh Panel","Gate Hinges","Diamond Blade","Grinding Disc","Gravel","Primer","Epoxy Resin"];
+  const stockItems = itemNames.map((name,i) => {
+    const truckQty = randInt(0,40), workshopQty = randInt(0,40), reorderThreshold = randInt(5,20);
+    const currentStock = truckQty + workshopQty;
+    return {
+      id:"demo-item-"+i, name, category: pick(["Consumables","Materials","Tools"]), unit: pick(["Unit","Bag","kg","L","m2"]),
+      truckQty, workshopQty, currentStock, reorderThreshold,
+      stockStatus: currentStock <= reorderThreshold ? "Low Stock" : "OK",
+      unitCost: randInt(50,1200), lastRestocked:"", supplierText:"", supplierContactId:""
+    };
+  });
+
+  // Weighted so most movements are deliveries/usage and wastage stays a
+  // small share — a uniform pick made "wastage" nonsensically exceed 100%.
+  const MOVE_TYPE_WEIGHTS = [["Delivery In",22],["Move to Truck",14],["Move to Workshop",14],["Used on Job",38],["Lost or Damaged",4],["Adjustment Up",4],["Adjustment Down",4]];
+  function pickWeighted(weights){
+    const total = weights.reduce((a,w) => a + w[1], 0);
+    let r = rng() * total;
+    for(const w of weights){ if(r < w[1]) return w[0]; r -= w[1]; }
+    return weights[weights.length-1][0];
+  }
+  const stockMovements = [];
+  for(let i=0;i<400;i++){
+    const item = pick(stockItems);
+    const type = pickWeighted(MOVE_TYPE_WEIGHTS);
+    const usedOnJob = type === "Used on Job" && rng() < 0.9;
+    const qty = type === "Delivery In" ? randInt(15,60) : (type === "Lost or Damaged" || type === "Adjustment Down") ? randInt(1,6) : randInt(1,20);
+    stockMovements.push({
+      id:"demo-mv-"+i, label:"", itemId:item.id, type, location: pick(["Truck","Workshop"]),
+      qty, supplierId:"", familyId: usedOnJob ? pick(cases).id : "",
+      unitCost: rng() < 0.85 ? item.unitCost : 0, date: isoDaysAgo(randInt(0,300)).slice(0,10),
+      loggedBy:"", notes:"", receiptUrl:""
+    });
+  }
+
+  const payments = [];
+  for(let i=0;i<300;i++){
+    const c = pick(cases);
+    payments.push({
+      id:"demo-pay-"+i, label:"Payment", amount: randInt(200,15000), method: pick(PAYMENT_METHODS),
+      date: isoDaysAgo(randInt(0,400)).slice(0,10), familyId: c.id, proofUrl:""
+    });
+  }
+
+  const stageLog = [];
+  for(let i=0;i<2000;i++){
+    const c = pick(cases);
+    const to = pick(STAGES);
+    let from = pick(STAGES);
+    if(from === to) from = STAGES[(STAGES.indexOf(to)+1) % STAGES.length];
+    stageLog.push({ id:"demo-log-"+i, familyId:c.id, from, to, changedAt: isoDaysAgo(randInt(0,420)), lostReason: to === "Lost" ? pick(LOST_REASONS) : "", baseline:false });
+  }
+
+  state.cases = cases;
+  state.stockItems = stockItems;
+  state.stockMovements = stockMovements;
+  state.suppliers = [];
+  state.payments = payments;
+  state.paymentsError = "";
+  state.stageLog = stageLog;
+  state.stageLogError = "";
+  state.catalog = [];
+  state.conversations = [];
+  state.convError = "";
+}
+
 async function boot(){
+  // Let the rest of this script finish initializing (STAGES, etc. are
+  // declared further down) before touching them — mirrors the natural
+  // yield that loadAll()'s network awaits give in the normal path.
+  await null;
+  if(new URLSearchParams(location.search).get("demo") === "reports"){
+    loadDemoFixtures();
+    render();
+    return;
+  }
   await loadAll();
 }
 

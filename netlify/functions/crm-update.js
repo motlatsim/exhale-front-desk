@@ -16,7 +16,10 @@ const VALID_SIGNOFF_STATUSES = ["Not Sent", "Sent", "Approved", "Changes Request
 const VALID_TERRAIN_TYPES = ["Standard Driveway", "4x4 Only", "Rough Gravel", "Rocky Ground"];
 const VALID_GROUND_PROFILES = ["Standard Soil", "Sand/Soft Earth", "Rock Slab"];
 const VALID_LOST_REASONS = ["Price too high", "Chose a competitor", "Went cold / unresponsive", "No longer needed", "Financing fell through", "Timing not right", "Other"];
+const VALID_LEAD_SOURCES = ["Website form", "WhatsApp (Peach)", "Walk-in", "Referral", "Funeral home", "Facebook", "Other"];
 const { requireKey } = require("./_require-key");
+
+const STAGE_LOG_DATABASE_ID = process.env.NOTION_STAGE_LOG_DB_ID;
 
 // Notion caps a single rich_text block at 2000 chars; split longer JSON
 // blobs (like Proposal Items) across multiple blocks instead of truncating.
@@ -148,6 +151,12 @@ exports.handler = async function (event) {
   if (data.estimate_number !== undefined) {
     properties["Estimate Number"] = { rich_text: [{ text: { content: String(data.estimate_number).slice(0, 100) } }] };
   }
+  // Unveiling/Estimate/Signoff/Invoice Date stay rich_text on purpose: the
+  // live Notion schema still has these as text, and switching a property's
+  // type on a database with real client records needs the owner's own pass
+  // (converting the type and re-entering each value) rather than an
+  // unattended migration. Once that's done, switch these to { date: {...} }
+  // to match Deposit Date / Installed Date, which are already real dates.
   if (data.estimate_date !== undefined) {
     properties["Estimate Date"] = { rich_text: [{ text: { content: String(data.estimate_date).slice(0, 100) } }] };
   }
@@ -202,6 +211,12 @@ exports.handler = async function (event) {
   if (data.tracker_token !== undefined) {
     properties["Tracker Token"] = { rich_text: [{ text: { content: String(data.tracker_token).slice(0, 200) } }] };
   }
+  if (data.lead_source !== undefined) {
+    properties["Lead Source"] = data.lead_source && VALID_LEAD_SOURCES.includes(data.lead_source) ? { select: { name: data.lead_source } } : { select: null };
+  }
+  if (data.referred_by !== undefined) {
+    properties["Referred By"] = { rich_text: [{ text: { content: String(data.referred_by).slice(0, 200) } }] };
+  }
 
   if (Object.keys(properties).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "Nothing to update." }) };
@@ -213,30 +228,38 @@ exports.handler = async function (event) {
     "Content-Type": "application/json"
   };
 
-  // The 50% deposit + design sign-off gate: stone cutting can't start until
-  // at least half the quote is paid and the family has approved the design.
-  // Enforced here (not just in the UI) since it's a hard business rule.
-  if (properties["Status"] && data.status === "Manufacturing") {
+  // Whenever the Status is changing, read the page first — both for the
+  // Manufacturing gate below and to know the "From" stage for the Stage Log.
+  let currentStatus = null;
+  if (properties["Status"]) {
     try {
       const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers: notionHeaders });
       const page = await pageRes.json();
       if (!pageRes.ok) return { statusCode: pageRes.status, body: JSON.stringify({ error: page.message || "Could not read the family record." }) };
       const p = page.properties || {};
-      const currentQuoted = (p["Quoted Value"] && p["Quoted Value"].number) || 0;
-      const currentPaid = (p["Amount Paid"] && p["Amount Paid"].number) || 0;
-      const currentSignoff = (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "";
+      currentStatus = (p["Status"] && p["Status"].select && p["Status"].select.name) || "";
 
-      const quoted = data.quoted_value !== undefined ? Number(data.quoted_value) || 0 : currentQuoted;
-      const paid = data.amount_paid !== undefined ? Number(data.amount_paid) || 0 : currentPaid;
-      const signoff = data.signoff_status !== undefined ? data.signoff_status : currentSignoff;
+      // The 50% deposit + design sign-off gate: stone cutting can't start
+      // until at least half the quote is paid and the family has approved
+      // the design. Enforced here (not just in the UI) since it's a hard
+      // business rule.
+      if (data.status === "Manufacturing") {
+        const currentQuoted = (p["Quoted Value"] && p["Quoted Value"].number) || 0;
+        const currentPaid = (p["Amount Paid"] && p["Amount Paid"].number) || 0;
+        const currentSignoff = (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "";
 
-      const depositMet = quoted > 0 && paid / quoted >= 0.5;
-      const designApproved = signoff === "Approved";
-      if (!depositMet || !designApproved) {
-        const missing = [];
-        if (!depositMet) missing.push(quoted > 0 ? "at least 50% of the quote paid (currently " + Math.round((paid / quoted) * 100) + "%)" : "a quoted value and at least 50% paid");
-        if (!designApproved) missing.push("the family's design sign-off");
-        return { statusCode: 400, body: JSON.stringify({ error: "Can't start manufacturing yet — still needs " + missing.join(" and ") + "." }) };
+        const quoted = data.quoted_value !== undefined ? Number(data.quoted_value) || 0 : currentQuoted;
+        const paid = data.amount_paid !== undefined ? Number(data.amount_paid) || 0 : currentPaid;
+        const signoff = data.signoff_status !== undefined ? data.signoff_status : currentSignoff;
+
+        const depositMet = quoted > 0 && paid / quoted >= 0.5;
+        const designApproved = signoff === "Approved";
+        if (!depositMet || !designApproved) {
+          const missing = [];
+          if (!depositMet) missing.push(quoted > 0 ? "at least 50% of the quote paid (currently " + Math.round((paid / quoted) * 100) + "%)" : "a quoted value and at least 50% paid");
+          if (!designApproved) missing.push("the family's design sign-off");
+          return { statusCode: 400, body: JSON.stringify({ error: "Can't start manufacturing yet — still needs " + missing.join(" and ") + "." }) };
+        }
       }
     } catch (err) {
       return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
@@ -252,6 +275,33 @@ exports.handler = async function (event) {
     const result = await res.json();
     if (!res.ok) {
       return { statusCode: res.status, body: JSON.stringify({ error: result.message || "Notion update failed" }) };
+    }
+
+    // Log the stage change — best effort. A failed log write must not fail
+    // the move itself, since the family's stage already changed above.
+    if (properties["Status"] && STAGE_LOG_DATABASE_ID && currentStatus !== data.status) {
+      try {
+        const logProperties = {
+          "Change": { title: [{ text: { content: (currentStatus || "—") + " → " + data.status } }] },
+          "Family": { relation: [{ id: pageId }] },
+          "To": { select: { name: data.status } },
+          "Changed At": { date: { start: new Date().toISOString() } },
+          "Baseline": { checkbox: false }
+        };
+        if (currentStatus) logProperties["From"] = { select: { name: currentStatus } };
+        if (data.status === "Lost" && data.lost_reason) logProperties["Lost Reason"] = { select: { name: data.lost_reason } };
+        const logRes = await fetch("https://api.notion.com/v1/pages", {
+          method: "POST",
+          headers: notionHeaders,
+          body: JSON.stringify({ parent: { database_id: STAGE_LOG_DATABASE_ID }, properties: logProperties })
+        });
+        if (!logRes.ok) {
+          const logResult = await logRes.json();
+          console.error("Stage Log write failed:", logResult.message || logRes.status);
+        }
+      } catch (logErr) {
+        console.error("Stage Log write failed:", logErr.message);
+      }
     }
     return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch (err) {
