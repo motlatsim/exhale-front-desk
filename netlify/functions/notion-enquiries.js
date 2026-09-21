@@ -4,6 +4,7 @@
 // it just calls this function. Replaces the old pipedrive-data.js.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-paginate");
 
 const NOTION_DATABASE_ID = "809dabc9-23dc-4932-9dee-525adb153223";
 
@@ -18,32 +19,31 @@ exports.handler = async function (event, context) {
   }
 
   try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        sorts: [{ property: "Submitted At", direction: "descending" }],
-        page_size: 100
-      })
+    const q = await notionQueryAll(token, NOTION_DATABASE_ID, {
+      sorts: [{ property: "Submitted At", direction: "descending" }]
     });
-
-    const data = await res.json();
-    if (!res.ok) {
-      return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
+    if (!q.ok) {
+      return { statusCode: q.status, body: JSON.stringify({ error: q.message }) };
     }
 
     // Flatten Notion's verbose property format into something simple for the frontend
-    const enquiries = (data.results || []).map(page => {
+    const enquiries = q.results.map(page => {
       const p = page.properties || {};
       const title = p["Name"] && p["Name"].title;
       const name = title && title.length ? title.map(t => t.plain_text).join("") : "Unknown";
       const richText = key => {
         const rt = p[key] && p[key].rich_text;
         return rt && rt.length ? rt.map(t => t.plain_text).join("") : "";
+      };
+      // Unveiling / Estimate / Invoice / Signoff Date are migrating from
+      // free-text rich_text to real Notion dates — read whichever shape
+      // is there so the app doesn't break mid-migration.
+      const dateOrText = key => {
+        const prop = p[key];
+        if (!prop) return "";
+        if (prop.date) return (prop.date && prop.date.start) || "";
+        if (prop.rich_text) return richText(key);
+        return "";
       };
       return {
         id: page.id,
@@ -54,7 +54,7 @@ exports.handler = async function (event, context) {
         message: richText("Message"),
         town: (p["Town"] && p["Town"].select && p["Town"].select.name) || "",
         landmark: richText("Landmark"),
-        unveiling: richText("Unveiling Date"),
+        unveiling: dateOrText("Unveiling Date"),
         site_access: richText("Site Access"),
         location_pin: (p["Location Pin"] && p["Location Pin"].url) || "",
         phone_valid: !!(p["Phone Looks Valid"] && p["Phone Looks Valid"].checkbox),
@@ -79,9 +79,9 @@ exports.handler = async function (event, context) {
         assigned_to: richText("Assigned To"),
         memorial_spec: richText("Memorial Spec"),
         estimate_number: richText("Estimate Number"),
-        estimate_date: richText("Estimate Date"),
+        estimate_date: dateOrText("Estimate Date"),
         invoice_number: richText("Invoice Number"),
-        invoice_date: richText("Invoice Date"),
+        invoice_date: dateOrText("Invoice Date"),
         credit_provider: richText("Credit Provider"),
         credit_status: (p["Credit Status"] && p["Credit Status"].select && p["Credit Status"].select.name) || "",
         credit_approved_amount: (p["Credit Approved Amount"] && p["Credit Approved Amount"].number) || 0,
@@ -98,7 +98,8 @@ exports.handler = async function (event, context) {
         })).filter(f => f.url),
         signoff_token: richText("Signoff Token"),
         signoff_status: (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "",
-        signoff_date: richText("Signoff Date"),
+        signoff_date: dateOrText("Signoff Date"),
+        signoff_sent_at: (p["Signoff Sent At"] && p["Signoff Sent At"].date && p["Signoff Sent At"].date.start) || "",
         signoff_note: richText("Signoff Note"),
         terrain_type: (p["Terrain Type"] && p["Terrain Type"].select && p["Terrain Type"].select.name) || "",
         ground_profile: (p["Ground Profile"] && p["Ground Profile"].select && p["Ground Profile"].select.name) || "",
@@ -108,7 +109,9 @@ exports.handler = async function (event, context) {
         checklist_polished: !!(p["Checklist Polished"] && p["Checklist Polished"].checkbox),
         tracker_token: richText("Tracker Token"),
         lost_reason: (p["Lost Reason"] && p["Lost Reason"].select && p["Lost Reason"].select.name) || "",
-        lost_reason_detail: richText("Lost Reason Detail")
+        lost_reason_detail: richText("Lost Reason Detail"),
+        lead_source: (p["Lead Source"] && p["Lead Source"].select && p["Lead Source"].select.name) || "",
+        referred_by: richText("Referred By")
       };
     });
 

@@ -16,6 +16,7 @@ const VALID_SIGNOFF_STATUSES = ["Not Sent", "Sent", "Approved", "Changes Request
 const VALID_TERRAIN_TYPES = ["Standard Driveway", "4x4 Only", "Rough Gravel", "Rocky Ground"];
 const VALID_GROUND_PROFILES = ["Standard Soil", "Sand/Soft Earth", "Rock Slab"];
 const VALID_LOST_REASONS = ["Price too high", "Chose a competitor", "Went cold / unresponsive", "No longer needed", "Financing fell through", "Timing not right", "Other"];
+const VALID_LEAD_SOURCES = ["Website form", "WhatsApp (Peach)", "Walk-in", "Referral", "Funeral home", "Facebook", "Other"];
 const { requireKey } = require("./_require-key");
 
 // Notion caps a single rich_text block at 2000 chars; split longer JSON
@@ -27,6 +28,36 @@ function chunkedRichText(content, chunkSize = 1900) {
     blocks.push({ text: { content: text.slice(i, i + chunkSize) } });
   }
   return blocks.length ? blocks : [{ text: { content: "" } }];
+}
+
+// Logs one Stage Log row for a Status move. Soft-fails on purpose — a
+// family's stage change must never be blocked or rolled back by a
+// logging problem, so this only ever console.errors and returns.
+async function logStageChange(notionHeaders, familyId, familyName, from, to, lostReason) {
+  const stageLogDbId = process.env.NOTION_STAGE_LOG_DB_ID;
+  if (!stageLogDbId) return;
+  try {
+    const properties = {
+      "Change": { title: [{ text: { content: `${familyName || "Family"} — ${from} → ${to}`.slice(0, 200) } }] },
+      "Family": { relation: [{ id: familyId }] },
+      "From": { select: { name: from } },
+      "To": { select: { name: to } },
+      "Changed At": { date: { start: new Date().toISOString() } }
+    };
+    if (to === "Lost" && lostReason) properties["Lost Reason"] = { select: { name: lostReason } };
+
+    const res = await fetch("https://api.notion.com/v1/pages", {
+      method: "POST",
+      headers: notionHeaders,
+      body: JSON.stringify({ parent: { database_id: stageLogDbId }, properties })
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error("logStageChange: Notion write failed —", body.message || res.status);
+    }
+  } catch (err) {
+    console.error("logStageChange: failed —", err.message);
+  }
 }
 
 exports.handler = async function (event) {
@@ -134,7 +165,7 @@ exports.handler = async function (event) {
     properties["Memorial Spec"] = { rich_text: [{ text: { content: String(data.memorial_spec).slice(0, 2000) } }] };
   }
   if (data.unveiling !== undefined) {
-    properties["Unveiling Date"] = { rich_text: [{ text: { content: String(data.unveiling).slice(0, 2000) } }] };
+    properties["Unveiling Date"] = data.unveiling ? { date: { start: data.unveiling } } : { date: null };
   }
   if (data.landmark !== undefined) {
     properties["Landmark"] = { rich_text: [{ text: { content: String(data.landmark).slice(0, 2000) } }] };
@@ -149,13 +180,13 @@ exports.handler = async function (event) {
     properties["Estimate Number"] = { rich_text: [{ text: { content: String(data.estimate_number).slice(0, 100) } }] };
   }
   if (data.estimate_date !== undefined) {
-    properties["Estimate Date"] = { rich_text: [{ text: { content: String(data.estimate_date).slice(0, 100) } }] };
+    properties["Estimate Date"] = data.estimate_date ? { date: { start: data.estimate_date } } : { date: null };
   }
   if (data.invoice_number !== undefined) {
     properties["Invoice Number"] = { rich_text: [{ text: { content: String(data.invoice_number).slice(0, 100) } }] };
   }
   if (data.invoice_date !== undefined) {
-    properties["Invoice Date"] = { rich_text: [{ text: { content: String(data.invoice_date).slice(0, 100) } }] };
+    properties["Invoice Date"] = data.invoice_date ? { date: { start: data.invoice_date } } : { date: null };
   }
   if (data.credit_provider !== undefined) {
     properties["Credit Provider"] = { rich_text: [{ text: { content: String(data.credit_provider).slice(0, 200) } }] };
@@ -202,6 +233,15 @@ exports.handler = async function (event) {
   if (data.tracker_token !== undefined) {
     properties["Tracker Token"] = { rich_text: [{ text: { content: String(data.tracker_token).slice(0, 200) } }] };
   }
+  if (data.lead_source !== undefined) {
+    properties["Lead Source"] = data.lead_source && VALID_LEAD_SOURCES.includes(data.lead_source) ? { select: { name: data.lead_source } } : { select: null };
+  }
+  if (data.referred_by !== undefined) {
+    properties["Referred By"] = { rich_text: [{ text: { content: String(data.referred_by).slice(0, 200) } }] };
+  }
+  if (data.signoff_sent_at !== undefined) {
+    properties["Signoff Sent At"] = data.signoff_sent_at ? { date: { start: data.signoff_sent_at } } : { date: null };
+  }
 
   if (Object.keys(properties).length === 0) {
     return { statusCode: 400, body: JSON.stringify({ error: "Nothing to update." }) };
@@ -213,30 +253,42 @@ exports.handler = async function (event) {
     "Content-Type": "application/json"
   };
 
-  // The 50% deposit + design sign-off gate: stone cutting can't start until
-  // at least half the quote is paid and the family has approved the design.
-  // Enforced here (not just in the UI) since it's a hard business rule.
-  if (properties["Status"] && data.status === "Manufacturing") {
+  // Whenever the stage is moving, read the current page first — both for
+  // the Manufacturing gate below and to log the move in Stage Log once
+  // the PATCH succeeds. Fetched once and reused for both.
+  let fromStatus = null;
+  let familyName = "";
+  if (properties["Status"]) {
     try {
       const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { headers: notionHeaders });
       const page = await pageRes.json();
       if (!pageRes.ok) return { statusCode: pageRes.status, body: JSON.stringify({ error: page.message || "Could not read the family record." }) };
       const p = page.properties || {};
-      const currentQuoted = (p["Quoted Value"] && p["Quoted Value"].number) || 0;
-      const currentPaid = (p["Amount Paid"] && p["Amount Paid"].number) || 0;
-      const currentSignoff = (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "";
+      fromStatus = (p["Status"] && p["Status"].select && p["Status"].select.name) || "Lead";
+      const titleProp = p["Name"] && p["Name"].title;
+      familyName = titleProp && titleProp.length ? titleProp.map(t => t.plain_text).join("") : "";
 
-      const quoted = data.quoted_value !== undefined ? Number(data.quoted_value) || 0 : currentQuoted;
-      const paid = data.amount_paid !== undefined ? Number(data.amount_paid) || 0 : currentPaid;
-      const signoff = data.signoff_status !== undefined ? data.signoff_status : currentSignoff;
+      // The 50% deposit + design sign-off gate: stone cutting can't start
+      // until at least half the quote is paid and the family has approved
+      // the design. Enforced here (not just in the UI) since it's a hard
+      // business rule.
+      if (data.status === "Manufacturing") {
+        const currentQuoted = (p["Quoted Value"] && p["Quoted Value"].number) || 0;
+        const currentPaid = (p["Amount Paid"] && p["Amount Paid"].number) || 0;
+        const currentSignoff = (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "";
 
-      const depositMet = quoted > 0 && paid / quoted >= 0.5;
-      const designApproved = signoff === "Approved";
-      if (!depositMet || !designApproved) {
-        const missing = [];
-        if (!depositMet) missing.push(quoted > 0 ? "at least 50% of the quote paid (currently " + Math.round((paid / quoted) * 100) + "%)" : "a quoted value and at least 50% paid");
-        if (!designApproved) missing.push("the family's design sign-off");
-        return { statusCode: 400, body: JSON.stringify({ error: "Can't start manufacturing yet — still needs " + missing.join(" and ") + "." }) };
+        const quoted = data.quoted_value !== undefined ? Number(data.quoted_value) || 0 : currentQuoted;
+        const paid = data.amount_paid !== undefined ? Number(data.amount_paid) || 0 : currentPaid;
+        const signoff = data.signoff_status !== undefined ? data.signoff_status : currentSignoff;
+
+        const depositMet = quoted > 0 && paid / quoted >= 0.5;
+        const designApproved = signoff === "Approved";
+        if (!depositMet || !designApproved) {
+          const missing = [];
+          if (!depositMet) missing.push(quoted > 0 ? "at least 50% of the quote paid (currently " + Math.round((paid / quoted) * 100) + "%)" : "a quoted value and at least 50% paid");
+          if (!designApproved) missing.push("the family's design sign-off");
+          return { statusCode: 400, body: JSON.stringify({ error: "Can't start manufacturing yet — still needs " + missing.join(" and ") + "." }) };
+        }
       }
     } catch (err) {
       return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
@@ -253,6 +305,11 @@ exports.handler = async function (event) {
     if (!res.ok) {
       return { statusCode: res.status, body: JSON.stringify({ error: result.message || "Notion update failed" }) };
     }
+
+    if (fromStatus !== null && fromStatus !== data.status) {
+      await logStageChange(notionHeaders, pageId, familyName, fromStatus, data.status, data.status === "Lost" ? data.lost_reason : null);
+    }
+
     return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };

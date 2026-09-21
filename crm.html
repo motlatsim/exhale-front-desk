@@ -773,6 +773,8 @@ const CREDIT_STATUSES = ["Not Applied","Applied","Approved","Declined","Active",
 const TERRAIN_TYPES = ["Standard Driveway","4x4 Only","Rough Gravel","Rocky Ground"];
 const GROUND_PROFILES = ["Standard Soil","Sand/Soft Earth","Rock Slab"];
 const PAYMENT_METHODS = ["Bank EFT","Cash at Bank","Speedpoint"];
+const LEAD_SOURCES = ["Website form","WhatsApp (Peach)","Walk-in","Referral","Funeral home","Facebook","Other"];
+const REFERRAL_LEAD_SOURCES = ["Referral","Funeral home"];
 const CHECKLIST_STEPS = [
   { key:"checklistSlab", field:"checklist_slab", label:"Slab cut" },
   { key:"checklistStencil", field:"checklist_stencil", label:"Stencil" },
@@ -915,7 +917,10 @@ function normalize(e){
     signoffToken: e.signoff_token || "",
     signoffStatus: e.signoff_status || "",
     signoffDate: e.signoff_date || "",
+    signoffSentAt: e.signoff_sent_at || "",
     signoffNote: e.signoff_note || "",
+    leadSource: e.lead_source || "",
+    referredBy: e.referred_by || "",
     terrainType: e.terrain_type || "",
     groundProfile: e.ground_profile || "",
     checklistSlab: !!e.checklist_slab,
@@ -2126,7 +2131,13 @@ function renderDrawer(){
           '<div class="field"><label>Wanting</label><select id="fInterest">' +
             INTERESTS.map(i => '<option value="' + esc(i) + '"' + (i===c.interest?" selected":"") + '>' + esc(i) + '</option>').join("") +
           '</select></div>' +
-          '<div class="field"><label>Unveiling</label><input id="fUnveiling" value="' + esc(c.unveiling) + '" placeholder="e.g. 26 Sep 2026"></div>' +
+          '<div class="field"><label>Unveiling</label><input type="date" id="fUnveiling" value="' + esc(/^\d{4}-\d{2}-\d{2}$/.test(c.unveiling) ? c.unveiling : "") + '"></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Lead source</label><select id="fLeadSource"><option value="">—</option>' +
+            LEAD_SOURCES.map(s => '<option value="' + esc(s) + '"' + (s===c.leadSource?" selected":"") + '>' + esc(s) + '</option>').join("") +
+          '</select></div>' +
+          '<div class="field" id="fReferredByField" style="display:' + (REFERRAL_LEAD_SOURCES.includes(c.leadSource)?"block":"none") + '"><label>Referred by</label><input id="fReferredBy" value="' + esc(c.referredBy) + '"></div>' +
         '</div>' +
         '<div class="field"><label>Memorial spec</label><textarea id="fMemorialSpec" placeholder="Material, size, finish, wording, engraving — e.g. granite double, black polished, sandblast-engraved lettering">' + esc(c.memorialSpec) + '</textarea></div>' +
         '<div class="field-row">' +
@@ -2283,6 +2294,10 @@ function renderDrawer(){
   loadPayments(c);
   document.getElementById("logPaymentBtn").addEventListener("click", () => openPaymentModal(c));
 
+  document.getElementById("fLeadSource").addEventListener("change", e => {
+    document.getElementById("fReferredByField").style.display = REFERRAL_LEAD_SOURCES.includes(e.target.value) ? "block" : "none";
+  });
+
   const sendTrackerBtn = document.getElementById("sendTrackerBtn");
   if(sendTrackerBtn) sendTrackerBtn.addEventListener("click", () => sendTrackerLink(c));
   const copyTrackerBtn = document.getElementById("copyTrackerBtn");
@@ -2340,6 +2355,8 @@ function renderDrawer(){
       town: document.getElementById("fTown").value,
       interest: document.getElementById("fInterest").value,
       unveiling: document.getElementById("fUnveiling").value.trim(),
+      lead_source: document.getElementById("fLeadSource").value,
+      referred_by: document.getElementById("fReferredBy").value.trim(),
       memorial_spec: document.getElementById("fMemorialSpec").value.trim(),
       quoted_value: document.getElementById("fValue").value,
       amount_paid: document.getElementById("fPaid").value,
@@ -2387,6 +2404,7 @@ function renderDrawer(){
       Object.assign(c, {
         contact: patch.name, family: familyName(patch.name), phone: patch.phone, email: patch.email,
         town: patch.town, interest: patch.interest, unveiling: patch.unveiling, memorialSpec: patch.memorial_spec,
+        leadSource: patch.lead_source, referredBy: patch.referred_by,
         value: Number(patch.quoted_value) || 0, paid: Number(patch.amount_paid) || 0,
         paymentOption: patch.payment_option, paymentPlan: patch.payment_plan,
         deceasedName: patch.deceased_name, dateOfBirth: patch.date_of_birth, dateOfDeath: patch.date_of_death,
