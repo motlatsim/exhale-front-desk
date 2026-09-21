@@ -5,6 +5,7 @@
 // takes no cash in the office, so nothing here is trusted without one.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-paginate");
 
 const PAYMENTS_DATABASE_ID = "429d47d244b54a1a891b5b6a7548baa9";
 
@@ -15,32 +16,26 @@ exports.handler = async function (event) {
   const token = process.env.NOTION_API_KEY;
   if (!token) return { statusCode: 500, body: JSON.stringify({ error: "NOTION_API_KEY not set" }) };
 
+  // family_id scopes to one family's history (the drawer's payment list);
+  // omit it to get the full ledger (Reports' Cash Collected panel and the
+  // Data Health ledger-reconciliation check).
   const familyId = ((event.queryStringParameters && event.queryStringParameters.family_id) || "").trim();
-  if (!familyId) return { statusCode: 400, body: JSON.stringify({ error: "Missing family_id." }) };
 
   try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${PAYMENTS_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        filter: { property: "Family", relation: { contains: familyId } },
-        sorts: [{ property: "Payment Date", direction: "descending" }],
-        page_size: 100
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
+    const body = { sorts: [{ property: "Payment Date", direction: "descending" }] };
+    if (familyId) body.filter = { property: "Family", relation: { contains: familyId } };
 
-    const payments = (data.results || []).map(page => {
+    const q = await notionQueryAll(token, PAYMENTS_DATABASE_ID, body);
+    if (!q.ok) return { statusCode: q.status, body: JSON.stringify({ error: q.message }) };
+
+    const payments = q.results.map(page => {
       const p = page.properties || {};
       const title = p["Payment Item"] && p["Payment Item"].title;
       const proofFiles = (p["Receipt Proof"] && p["Receipt Proof"].files) || [];
+      const familyRel = (p["Family"] && p["Family"].relation) || [];
       return {
         id: page.id,
+        familyId: familyRel.length ? familyRel[0].id : "",
         label: title && title.length ? title.map(t => t.plain_text).join("") : "Payment",
         amount: (p["Amount"] && p["Amount"].number) || 0,
         method: (p["Method"] && p["Method"].select && p["Method"].select.name) || "",

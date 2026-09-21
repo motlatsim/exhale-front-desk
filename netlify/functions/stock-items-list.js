@@ -5,6 +5,7 @@
 // Current stock and Stock Status are Notion formulas computed from them.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-paginate");
 
 const CONSUMABLES_DATABASE_ID = "893da7b9284a4f0ab924458fcc26b592";
 
@@ -16,19 +17,10 @@ exports.handler = async function (event) {
   if (!token) return { statusCode: 500, body: JSON.stringify({ error: "NOTION_API_KEY not set" }) };
 
   try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${CONSUMABLES_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ sorts: [{ property: "Item name", direction: "ascending" }], page_size: 100 })
-    });
-    const data = await res.json();
-    if (!res.ok) return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
+    const q = await notionQueryAll(token, CONSUMABLES_DATABASE_ID, { sorts: [{ property: "Item name", direction: "ascending" }] });
+    if (!q.ok) return { statusCode: q.status, body: JSON.stringify({ error: q.message }) };
 
-    const items = (data.results || []).map(page => {
+    const items = q.results.map(page => {
       const p = page.properties || {};
       const title = p["Item name"] && p["Item name"].title;
       const supplierRelation = (p["Supplier Contact"] && p["Supplier Contact"].relation) || [];

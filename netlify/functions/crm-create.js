@@ -9,6 +9,7 @@ const { requireKey } = require("./_require-key");
 const NOTION_DATABASE_ID = "809dabc9-23dc-4932-9dee-525adb153223";
 const VALID_INTERESTS = ["Tombstones", "Plaques", "Grave Restorations", "Memorial Books", "Not sure yet"];
 const VALID_TOWNS = ["Lusikisiki", "Port St Johns", "Flagstaff", "Other"];
+const VALID_LEAD_SOURCES = ["Website form", "WhatsApp (Peach)", "Walk-in", "Referral", "Funeral home", "Facebook", "Other"];
 
 exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
@@ -36,6 +37,8 @@ exports.handler = async function (event) {
   const interest = (data.interest || "Not sure yet").trim();
   const town = (data.town || "").trim();
   const message = (data.message || "").trim();
+  const leadSource = (data.lead_source || "").trim();
+  const referredBy = (data.referred_by || "").trim();
 
   if (!name || !phone) {
     return { statusCode: 400, body: JSON.stringify({ error: "Name and phone number are required." }) };
@@ -65,6 +68,8 @@ exports.handler = async function (event) {
     if (email) properties["Email"] = { email };
     if (message) properties["Message"] = { rich_text: [{ text: { content: message.slice(0, 2000) } }] };
     if (town && VALID_TOWNS.includes(town)) properties["Town"] = { select: { name: town } };
+    if (leadSource && VALID_LEAD_SOURCES.includes(leadSource)) properties["Lead Source"] = { select: { name: leadSource } };
+    if (referredBy) properties["Referred By"] = { rich_text: [{ text: { content: referredBy.slice(0, 200) } }] };
 
     const notionRes = await fetch("https://api.notion.com/v1/pages", {
       method: "POST",

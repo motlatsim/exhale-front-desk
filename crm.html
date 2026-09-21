@@ -538,6 +538,12 @@
         <select id="aTown"><option value="">—</option><option>Lusikisiki</option><option>Port St Johns</option><option>Flagstaff</option><option>Other</option></select>
       </div>
     </div>
+    <div class="field-row">
+      <div class="field"><label>Lead source</label>
+        <select id="aLeadSource"></select>
+      </div>
+      <div class="field" id="aReferredByField" style="display:none"><label>Referred by</label><input id="aReferredBy"></div>
+    </div>
     <div class="field"><label>Message / notes</label><textarea id="aMessage" placeholder="What are they after?"></textarea></div>
     <div class="modal-actions">
       <button class="btn-accent" id="addSaveBtn">Add family</button>
@@ -2588,9 +2594,10 @@ function generateRandomToken(){
 }
 async function sendForSignoff(c){
   const token = c.signoffToken || generateRandomToken();
+  const sentAt = new Date().toISOString().slice(0,10);
   try{
-    await updateCase(c.id, { signoff_token: token, signoff_status: "Sent" });
-    c.signoffToken = token; c.signoffStatus = "Sent";
+    await updateCase(c.id, { signoff_token: token, signoff_status: "Sent", signoff_sent_at: sentAt });
+    c.signoffToken = token; c.signoffStatus = "Sent"; c.signoffSentAt = sentAt;
     renderDrawer();
   }catch(err){
     alert("Couldn't send for sign-off — try again.");
@@ -2933,11 +2940,16 @@ function renderPrintDoc(c, type){
 
 /* ---------- New family modal ---------- */
 document.getElementById("newFamilyBtn").addEventListener("click", () => {
-  ["aName","aPhone","aEmail","aMessage"].forEach(id => document.getElementById(id).value = "");
+  ["aName","aPhone","aEmail","aMessage","aReferredBy"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("aInterest").value = "Not sure yet";
   document.getElementById("aTown").value = "";
+  document.getElementById("aLeadSource").innerHTML = LEAD_SOURCES.map(s => '<option' + (s==="Walk-in"?" selected":"") + '>' + esc(s) + '</option>').join("");
+  document.getElementById("aReferredByField").style.display = "none";
   document.getElementById("addStatus").textContent = "";
   document.getElementById("addOverlay").classList.add("open");
+});
+document.getElementById("aLeadSource").addEventListener("change", e => {
+  document.getElementById("aReferredByField").style.display = REFERRAL_LEAD_SOURCES.includes(e.target.value) ? "block" : "none";
 });
 document.getElementById("addClose").addEventListener("click", () => document.getElementById("addOverlay").classList.remove("open"));
 document.getElementById("addOverlay").addEventListener("click", e => { if(e.target.id === "addOverlay") document.getElementById("addOverlay").classList.remove("open"); });
@@ -2955,6 +2967,8 @@ document.getElementById("addSaveBtn").addEventListener("click", async () => {
         email: document.getElementById("aEmail").value.trim(),
         interest: document.getElementById("aInterest").value,
         town: document.getElementById("aTown").value,
+        lead_source: document.getElementById("aLeadSource").value,
+        referred_by: document.getElementById("aReferredBy").value.trim(),
         message: document.getElementById("aMessage").value.trim()
       })
     });

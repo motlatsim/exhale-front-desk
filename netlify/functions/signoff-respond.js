@@ -45,7 +45,7 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         properties: {
           "Signoff Status": { select: { name: status } },
-          "Signoff Date": { rich_text: [{ text: { content: new Date().toISOString().slice(0, 10) } }] },
+          "Signoff Date": { date: { start: new Date().toISOString().slice(0, 10) } },
           "Signoff Note": { rich_text: [{ text: { content: String(data.note || "").slice(0, 2000) } }] }
         }
       })

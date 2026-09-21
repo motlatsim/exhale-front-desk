@@ -5,6 +5,7 @@
 // Pass item_id to scope to one item's history; omit it for the full feed.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-paginate");
 
 const STOCK_MOVEMENTS_DATABASE_ID = "e9719b735c214ae8941b9d15bc1193b6";
 
@@ -18,25 +19,13 @@ exports.handler = async function (event) {
   const itemId = ((event.queryStringParameters && event.queryStringParameters.item_id) || "").trim();
 
   try {
-    const body = {
-      sorts: [{ property: "Movement Date", direction: "descending" }],
-      page_size: 100
-    };
+    const body = { sorts: [{ property: "Movement Date", direction: "descending" }] };
     if (itemId) body.filter = { property: "Item", relation: { contains: itemId } };
 
-    const res = await fetch(`https://api.notion.com/v1/databases/${STOCK_MOVEMENTS_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!res.ok) return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
+    const q = await notionQueryAll(token, STOCK_MOVEMENTS_DATABASE_ID, body);
+    if (!q.ok) return { statusCode: q.status, body: JSON.stringify({ error: q.message }) };
 
-    const movements = (data.results || []).map(page => {
+    const movements = q.results.map(page => {
       const p = page.properties || {};
       const title = p["Movement"] && p["Movement"].title;
       const itemRel = (p["Item"] && p["Item"].relation) || [];
