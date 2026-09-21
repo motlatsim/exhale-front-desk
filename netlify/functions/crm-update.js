@@ -151,20 +151,20 @@ exports.handler = async function (event) {
   if (data.estimate_number !== undefined) {
     properties["Estimate Number"] = { rich_text: [{ text: { content: String(data.estimate_number).slice(0, 100) } }] };
   }
-  // Unveiling/Estimate/Signoff/Invoice Date stay rich_text on purpose: the
-  // live Notion schema still has these as text, and switching a property's
-  // type on a database with real client records needs the owner's own pass
-  // (converting the type and re-entering each value) rather than an
-  // unattended migration. Once that's done, switch these to { date: {...} }
-  // to match Deposit Date / Installed Date, which are already real dates.
+  // Unveiling Date stays rich_text — some existing values are month/year-only
+  // ("December 2026"), not a real day, so it isn't safe to force into a Date
+  // property yet. Estimate/Invoice/Signoff Date are now real Notion Date
+  // properties (converted 2026-09-21; every existing value in them was
+  // already a clean ISO date written by this app, so nothing was lost),
+  // matching Deposit Date / Installed Date.
   if (data.estimate_date !== undefined) {
-    properties["Estimate Date"] = { rich_text: [{ text: { content: String(data.estimate_date).slice(0, 100) } }] };
+    properties["Estimate Date"] = data.estimate_date ? { date: { start: data.estimate_date } } : { date: null };
   }
   if (data.invoice_number !== undefined) {
     properties["Invoice Number"] = { rich_text: [{ text: { content: String(data.invoice_number).slice(0, 100) } }] };
   }
   if (data.invoice_date !== undefined) {
-    properties["Invoice Date"] = { rich_text: [{ text: { content: String(data.invoice_date).slice(0, 100) } }] };
+    properties["Invoice Date"] = data.invoice_date ? { date: { start: data.invoice_date } } : { date: null };
   }
   if (data.credit_provider !== undefined) {
     properties["Credit Provider"] = { rich_text: [{ text: { content: String(data.credit_provider).slice(0, 200) } }] };
