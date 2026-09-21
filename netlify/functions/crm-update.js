@@ -184,6 +184,9 @@ exports.handler = async function (event) {
   if (data.proposal_items !== undefined) {
     properties["Proposal Items"] = { rich_text: chunkedRichText(data.proposal_items) };
   }
+  if (data.job_materials !== undefined) {
+    properties["Job Materials"] = { rich_text: chunkedRichText(data.job_materials) };
+  }
   if (data.signoff_token !== undefined) {
     properties["Signoff Token"] = { rich_text: [{ text: { content: String(data.signoff_token).slice(0, 200) } }] };
   }

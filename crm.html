@@ -955,6 +955,7 @@ function normalize(e){
     creditReference: e.credit_reference || "",
     installments: (function(){ try{ return JSON.parse(e.installments || "[]"); }catch(err){ return []; } })(),
     proposalItems: (function(){ try{ return JSON.parse(e.proposal_items || "[]"); }catch(err){ return []; } })(),
+    jobMaterials: (function(){ try{ return JSON.parse(e.job_materials || "[]"); }catch(err){ return []; } })(),
     designImages: e.design_images || [],
     referencePhotos: e.reference_photos || [],
     signoffToken: e.signoff_token || "",
@@ -1948,6 +1949,22 @@ function materialsByFamily(){
     byFamily[m.familyId].cost += m.qty * unitCost;
     if(hasCost) byFamily[m.familyId].hasAnyCost = true;
   });
+  // Materials bought per-job from a local supplier (cement, mesh, sealer,
+  // sand...) aren't kept as stock, so they're logged as a free-text list
+  // on the family itself rather than through Stock Movements — folded into
+  // the same per-family total here so one job's true materials cost isn't
+  // split across two reports.
+  state.cases.forEach(c => {
+    const jm = (c.jobMaterials || []).filter(i => i.name && i.name.trim());
+    if(!jm.length) return;
+    if(!byFamily[c.id]) byFamily[c.id] = { cost:0, hasAnyCost:false };
+    jm.forEach(item => {
+      const qty = Number(item.qty) || 0;
+      const cost = Number(item.unitCost) || 0;
+      byFamily[c.id].cost += qty * cost;
+      if(cost > 0) byFamily[c.id].hasAnyCost = true;
+    });
+  });
   return byFamily;
 }
 
@@ -2400,6 +2417,20 @@ function renderDrawer(){
           '</div>'
         : '<div class="prop-share-hint">Convert to estimate to unlock sharing.</div>') +
       '</div>' +
+      '<div class="panel" style="padding:16px 18px">' +
+        '<div class="h2" style="font-size:14px;margin-bottom:4px">Materials for this job</div>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px">Cement, mesh, sealer, sand — whatever this job needs from the local supplier. Save it, then print it as a purchase order to take with you.</div>' +
+        '<div id="jobMaterialsBody"></div>' +
+        '<div class="prop-actions">' +
+          '<button class="btn-ghost" id="addJobMaterialBtn">+ Add material</button>' +
+        '</div>' +
+        '<div class="prop-total" id="jobMaterialsTotal"></div>' +
+        '<div class="save-row" style="padding:0;flex-wrap:wrap">' +
+          '<button class="btn-accent" id="saveJobMaterialsBtn">Save</button>' +
+          '<button class="btn-ghost" id="printPurchaseOrderBtn"' + (c.jobMaterials.length ? '' : ' disabled') + '>Print purchase order</button>' +
+          '<span class="save-status" id="jobMaterialsSaveStatus"></span>' +
+        '</div>' +
+      '</div>' +
       '<div class="panel" style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
         '<div class="h2" style="font-size:13px;flex:0 0 auto">Documents</div>' +
         '<button class="btn-ghost" id="viewEstimateBtn">' + (c.estimateNumber ? "View estimate (" + esc(c.estimateNumber) + ")" : "Create estimate") + '</button>' +
@@ -2564,6 +2595,15 @@ function renderDrawer(){
   document.getElementById("addProposalCatalogBtn").addEventListener("click", () => openCatalogPicker());
   document.getElementById("saveProposalBtn").addEventListener("click", () => saveProposalOnly(c));
   document.getElementById("convertEstimateBtn").addEventListener("click", () => convertToEstimate(c));
+
+  renderJobMaterialRows(c.jobMaterials || []);
+  document.getElementById("addJobMaterialBtn").addEventListener("click", () => {
+    const list = readJobMaterialsFromDOM();
+    list.push({ name:"", qty:1, unitCost:0 });
+    renderJobMaterialRows(list);
+  });
+  document.getElementById("saveJobMaterialsBtn").addEventListener("click", () => saveJobMaterials(c));
+  document.getElementById("printPurchaseOrderBtn").addEventListener("click", () => viewPurchaseOrder(c));
   const shareWaBtn = document.getElementById("shareWhatsAppBtn");
   if(shareWaBtn) shareWaBtn.addEventListener("click", () => shareEstimateWhatsApp(c));
   const shareEmailBtn = document.getElementById("shareEmailBtn");
@@ -2801,6 +2841,109 @@ function updateProposalTotal(list){
   totalEl.innerHTML = '<span>Proposal total</span><span>' + ZAR(total) + '</span>';
   const fValue = document.getElementById("fValue");
   if(fValue && list.length) fValue.value = total;
+}
+
+/* ---------- Materials for this job (free-text, per-job supplier purchases) ---------- */
+function readJobMaterialsFromDOM(){
+  return Array.from(document.querySelectorAll("#jobMaterialsBody .prop-row")).map(row => ({
+    name: row.querySelector(".jm-name").value,
+    qty: Number(row.querySelector(".jm-qty").value) || 0,
+    unitCost: Number(row.querySelector(".jm-cost").value) || 0
+  }));
+}
+function renderJobMaterialRows(list){
+  const body = document.getElementById("jobMaterialsBody");
+  body.innerHTML = list.length ? list.map((item, i) =>
+    '<div class="prop-row" data-i="' + i + '">' +
+      '<input class="prop-name jm-name" placeholder="Material (e.g. Cement 42.5N)" value="' + esc(item.name || "") + '">' +
+      '<input type="number" class="prop-qty jm-qty" placeholder="Qty" value="' + (item.qty || "") + '">' +
+      '<input type="number" class="prop-price jm-cost" placeholder="Unit cost (R)" value="' + (item.unitCost || "") + '">' +
+      '<span class="prop-line-total">' + ZAR((Number(item.qty)||0) * (Number(item.unitCost)||0)) + '</span>' +
+      '<button type="button" class="prop-remove" data-i="' + i + '">Remove</button>' +
+    '</div>'
+  ).join("") : '<div class="empty-state" style="padding:10px 0">No materials listed yet.</div>';
+
+  body.querySelectorAll(".prop-remove").forEach(btn => btn.addEventListener("click", () => {
+    const updated = readJobMaterialsFromDOM();
+    updated.splice(Number(btn.dataset.i), 1);
+    renderJobMaterialRows(updated);
+  }));
+  body.querySelectorAll(".jm-qty, .jm-cost").forEach(el => el.addEventListener("input", () => {
+    const row = el.closest(".prop-row");
+    const qty = Number(row.querySelector(".jm-qty").value) || 0;
+    const cost = Number(row.querySelector(".jm-cost").value) || 0;
+    row.querySelector(".prop-line-total").textContent = ZAR(qty * cost);
+    updateJobMaterialsTotal(readJobMaterialsFromDOM());
+  }));
+  updateJobMaterialsTotal(list);
+}
+function updateJobMaterialsTotal(list){
+  const totalEl = document.getElementById("jobMaterialsTotal");
+  const total = list.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.unitCost)||0), 0);
+  totalEl.innerHTML = '<span>Materials total</span><span>' + ZAR(total) + '</span>';
+}
+async function saveJobMaterials(c){
+  const status = document.getElementById("jobMaterialsSaveStatus");
+  status.textContent = "Saving…"; status.className = "save-status";
+  try{
+    const items = readJobMaterialsFromDOM().filter(i => i.name.trim());
+    await updateCase(c.id, { job_materials: JSON.stringify(items) });
+    c.jobMaterials = items;
+    renderDrawer();
+    document.getElementById("jobMaterialsSaveStatus").textContent = "Saved ✓";
+    document.getElementById("jobMaterialsSaveStatus").className = "save-status ok";
+  }catch(err){
+    status.textContent = "Couldn't save: " + err.message;
+    status.className = "save-status err";
+  }
+}
+function renderPurchaseOrderDoc(c){
+  const items = (c.jobMaterials || []).filter(i => i.name && i.name.trim());
+  const total = items.reduce((a,i) => a + (Number(i.qty)||0) * (Number(i.unitCost)||0), 0);
+  const rows = items.map((item, i) =>
+    '<tr>' +
+      '<td>' + (i+1) + '</td>' +
+      '<td class="doc-item-name">' + esc(item.name) + '</td>' +
+      '<td class="right">' + (Number(item.qty)||0) + '</td>' +
+      '<td class="right">' + (item.unitCost ? ZAR(item.unitCost) : "—") + '</td>' +
+      '<td class="right">' + (item.unitCost ? ZAR((Number(item.qty)||0) * (Number(item.unitCost)||0)) : "—") + '</td>' +
+    '</tr>'
+  ).join("");
+
+  const page = document.getElementById("docPage");
+  page.innerHTML =
+    '<div class="doc-head">' +
+      '<div>' +
+        '<div class="doc-title">PURCHASE ORDER</div>' +
+        '<div class="doc-biz-name">' + esc(BUSINESS.name) + '</div>' +
+        BUSINESS.addressLines.map(l => '<div class="doc-biz-line">' + esc(l) + '</div>').join("") +
+      '</div>' +
+      '<div>' +
+        '<div class="doc-brand"><svg width="18" height="18" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M28 13 H37.5 V30" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M14 24 H23 V26.5" stroke="#20C997" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="doc-brand-word">exhale</span></div>' +
+        '<div class="doc-contact">' +
+          '<div>' + esc(BUSINESS.email) + '</div>' +
+          '<div>' + esc(BUSINESS.phone) + '</div>' +
+          '<div>' + esc(BUSINESS.website) + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="doc-box">' +
+      '<div class="doc-box-label">For job</div>' +
+      '<div class="doc-bold">' + esc(c.family) + '</div>' +
+      (c.memorialSpec ? '<div class="doc-line">' + esc(c.memorialSpec) + '</div>' : "") +
+      '<div class="doc-divider"></div>' +
+      '<div class="doc-detail-row"><span>Date</span><span>' + fmtDate(new Date()) + '</span></div>' +
+    '</div>' +
+    '<div class="doc-table-wrap"><table class="doc-table">' +
+      '<thead><tr><th>#</th><th>Material</th><th class="right">Qty</th><th class="right">Unit cost</th><th class="right">Line total</th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="5" style="text-align:center;color:var(--ink-soft)">No materials listed yet.</td></tr>') + '</tbody>' +
+    '</table></div>' +
+    '<div class="doc-total-row doc-total-bold"><span>Total (materials only — excludes labour and transport)</span><span>' + ZAR(total) + '</span></div>' +
+    '<div class="doc-footnote">Working list for the supplier — not an invoice, no payment due against this document.</div>';
+}
+function viewPurchaseOrder(c){
+  renderPurchaseOrderDoc(c);
+  document.getElementById("printDoc").classList.add("open");
 }
 
 /* ---------- Catalog picker (drawer) ---------- */
@@ -3332,7 +3475,7 @@ function loadDemoFixtures(){
       value, paid, paymentOption: pick(PAYMENT_OPTIONS), paymentPlan:"", progress:0, assignedTo:"",
       memorialSpec:"", estimateNumber: value > 0 && rng() < 0.85 ? "EST-DEMO-"+i : "", estimateDate:"",
       invoiceNumber:"", invoiceDate:"", creditProvider:"", creditStatus:"", creditApprovedAmount:0, creditReference:"",
-      installments:[], proposalItems:[], designImages:[], referencePhotos:[],
+      installments:[], proposalItems:[], jobMaterials:[], designImages:[], referencePhotos:[],
       signoffToken:"", signoffStatus: rng() < 0.15 ? "Sent" : (rng() < 0.4 ? "Approved" : ""), signoffDate:"", signoffNote:"",
       terrainType:"", groundProfile:"",
       checklistSlab: rng()<0.5, checklistStencil: rng()<0.4, checklistEngraved: rng()<0.3, checklistPolished: rng()<0.2,

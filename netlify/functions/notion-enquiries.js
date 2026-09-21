@@ -80,6 +80,7 @@ exports.handler = async function (event, context) {
         credit_reference: richText("Credit Reference"),
         installments: richText("Installments"),
         proposal_items: richText("Proposal Items"),
+        job_materials: richText("Job Materials"),
         design_images: ((p["Design Images"] && p["Design Images"].files) || []).map(f => ({
           name: f.name || "",
           url: f.file ? f.file.url : (f.external ? f.external.url : "")
