@@ -960,6 +960,7 @@ function normalize(e){
     signoffToken: e.signoff_token || "",
     signoffStatus: e.signoff_status || "",
     signoffDate: e.signoff_date || "",
+    signoffSentAt: e.signoff_sent_at || "",
     signoffNote: e.signoff_note || "",
     terrainType: e.terrain_type || "",
     groundProfile: e.ground_profile || "",
@@ -1921,7 +1922,7 @@ function dataHealthRules(){
     { label:"Deposit Confirmed with no deposit recorded", test:c => c.stage === "Deposit Confirmed" && !c.deposit },
     { label:"Phone number looks invalid", test:c => c.stage !== "Lost" && !c.phoneValid },
     { label:"Quoted but no estimate number", test:c => c.value > 0 && !c.estimateNumber },
-    { label:"Sign-off sent more than " + REPORTS.SIGNOFF_STALE_DAYS + " days ago with no response", test:c => c.signoffStatus === "Sent" && daysSince(c.updatedAt) > REPORTS.SIGNOFF_STALE_DAYS },
+    { label:"Sign-off sent more than " + REPORTS.SIGNOFF_STALE_DAYS + " days ago with no response", test:c => c.signoffStatus === "Sent" && c.signoffSentAt && daysSince(c.signoffSentAt) > REPORTS.SIGNOFF_STALE_DAYS },
     { label:"Live family with no update in " + REPORTS.UPDATE_STALE_DAYS + " days", test:c => c.stage !== "Lost" && daysSince(c.updatedAt) > REPORTS.UPDATE_STALE_DAYS },
     { label:"Installation stage or later with no installed date", test:c => c.stage !== "Lost" && PROD_STAGE_ORDER.indexOf(c.stage) >= PROD_STAGE_ORDER.indexOf("Installation") && !c.installedDate },
     { label:"Missing town", test:c => c.stage !== "Lost" && !c.town },
@@ -2874,9 +2875,10 @@ function generateRandomToken(){
 }
 async function sendForSignoff(c){
   const token = c.signoffToken || generateRandomToken();
+  const sentAt = new Date().toISOString().slice(0,10);
   try{
-    await updateCase(c.id, { signoff_token: token, signoff_status: "Sent" });
-    c.signoffToken = token; c.signoffStatus = "Sent";
+    await updateCase(c.id, { signoff_token: token, signoff_status: "Sent", signoff_sent_at: sentAt });
+    c.signoffToken = token; c.signoffStatus = "Sent"; c.signoffSentAt = sentAt;
     renderDrawer();
   }catch(err){
     alert("Couldn't send for sign-off — try again.");

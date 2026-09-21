@@ -190,6 +190,9 @@ exports.handler = async function (event) {
   if (data.signoff_status !== undefined && VALID_SIGNOFF_STATUSES.includes(data.signoff_status)) {
     properties["Signoff Status"] = { select: { name: data.signoff_status } };
   }
+  if (data.signoff_sent_at !== undefined) {
+    properties["Signoff Sent At"] = data.signoff_sent_at ? { date: { start: data.signoff_sent_at } } : { date: null };
+  }
   if (data.terrain_type !== undefined) {
     properties["Terrain Type"] = data.terrain_type && VALID_TERRAIN_TYPES.includes(data.terrain_type) ? { select: { name: data.terrain_type } } : { select: null };
   }

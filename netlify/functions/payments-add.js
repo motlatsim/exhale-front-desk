@@ -10,6 +10,7 @@
 // mirrors the pattern already used for design/reference photos.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-query-all");
 
 const PAYMENTS_DATABASE_ID = "429d47d244b54a1a891b5b6a7548baa9";
 const VALID_METHODS = ["Bank EFT", "Cash at Bank", "Speedpoint"];
@@ -62,15 +63,14 @@ exports.handler = async function (event) {
     if (!createRes.ok) return { statusCode: createRes.status, body: JSON.stringify({ error: created.message || "Could not log the payment." }) };
 
     // Re-sum every ledger entry for this family and sync it onto Amount Paid.
-    const queryRes = await fetch(`https://api.notion.com/v1/databases/${PAYMENTS_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: notionHeaders,
-      body: JSON.stringify({ filter: { property: "Family", relation: { contains: familyId } }, page_size: 100 })
-    });
-    const queryData = await queryRes.json();
-    if (!queryRes.ok) return { statusCode: 200, body: JSON.stringify({ success: true, id: created.id, totalPaid: null }) };
+    let payPages;
+    try {
+      payPages = await notionQueryAll(PAYMENTS_DATABASE_ID, { filter: { property: "Family", relation: { contains: familyId } } }, notionHeaders);
+    } catch (err) {
+      return { statusCode: 200, body: JSON.stringify({ success: true, id: created.id, totalPaid: null }) };
+    }
 
-    const totalPaid = (queryData.results || []).reduce((sum, page) => {
+    const totalPaid = payPages.reduce((sum, page) => {
       const amt = (page.properties["Amount"] && page.properties["Amount"].number) || 0;
       return sum + amt;
     }, 0);

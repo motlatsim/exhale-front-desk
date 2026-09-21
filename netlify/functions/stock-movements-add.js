@@ -7,6 +7,7 @@
 // update on their own once those are patched.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-query-all");
 
 const CONSUMABLES_DATABASE_ID = "893da7b9284a4f0ab924458fcc26b592";
 const STOCK_MOVEMENTS_DATABASE_ID = "e9719b735c214ae8941b9d15bc1193b6";
@@ -85,15 +86,14 @@ exports.handler = async function (event) {
     if (!createRes.ok) return { statusCode: createRes.status, body: JSON.stringify({ error: created.message || "Could not log the movement." }) };
 
     // Re-sum every movement for this item and sync Truck Qty / Workshop Qty.
-    const queryRes = await fetch(`https://api.notion.com/v1/databases/${STOCK_MOVEMENTS_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: notionHeaders,
-      body: JSON.stringify({ filter: { property: "Item", relation: { contains: itemId } }, page_size: 100 })
-    });
-    const queryData = await queryRes.json();
-    if (!queryRes.ok) return { statusCode: 200, body: JSON.stringify({ success: true, id: created.id, truckQty: null, workshopQty: null }) };
+    let movePages;
+    try {
+      movePages = await notionQueryAll(STOCK_MOVEMENTS_DATABASE_ID, { filter: { property: "Item", relation: { contains: itemId } } }, notionHeaders);
+    } catch (err) {
+      return { statusCode: 200, body: JSON.stringify({ success: true, id: created.id, truckQty: null, workshopQty: null }) };
+    }
 
-    const totals = (queryData.results || []).reduce((acc, page) => {
+    const totals = movePages.reduce((acc, page) => {
       const pp = page.properties;
       const t = pp["Type"] && pp["Type"].select && pp["Type"].select.name;
       const loc = pp["Location"] && pp["Location"].select && pp["Location"].select.name;

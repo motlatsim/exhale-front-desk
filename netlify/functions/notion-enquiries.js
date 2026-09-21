@@ -91,6 +91,7 @@ exports.handler = async function (event, context) {
         signoff_token: richText("Signoff Token"),
         signoff_status: (p["Signoff Status"] && p["Signoff Status"].select && p["Signoff Status"].select.name) || "",
         signoff_date: (p["Signoff Date"] && p["Signoff Date"].date && p["Signoff Date"].date.start) || "",
+        signoff_sent_at: (p["Signoff Sent At"] && p["Signoff Sent At"].date && p["Signoff Sent At"].date.start) || "",
         signoff_note: richText("Signoff Note"),
         terrain_type: (p["Terrain Type"] && p["Terrain Type"].select && p["Terrain Type"].select.name) || "",
         ground_profile: (p["Ground Profile"] && p["Ground Profile"].select && p["Ground Profile"].select.name) || "",
