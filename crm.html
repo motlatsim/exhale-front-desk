@@ -719,6 +719,8 @@
 <script>
 "use strict";
 
+const DEMO_MODE = new URLSearchParams(location.search).get("demo") === "reports";
+
 /* ---------- Gate (shared with Front Desk) ---------- */
 function showApp(){
   document.getElementById("gate").style.display = "none";
@@ -730,7 +732,6 @@ function showGateAgain(msg){
   document.getElementById("gate").style.display = "flex";
   document.getElementById("gateError").textContent = msg || "";
 }
-if(localStorage.getItem("exhale_crm_key")) showApp();
 document.getElementById("gateForm").addEventListener("submit", async e => {
   e.preventDefault();
   const val = document.getElementById("gatePassword").value;
@@ -814,7 +815,6 @@ const NAV = [
 
 /* ---------- State ---------- */
 const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null, stockItems:[], stockMovements:[], suppliers:[], stockItemEditingId:null, supplierEditingId:null, payments:[], stageLog:[] };
-const DEMO_MODE = new URLSearchParams(location.search).get("demo") === "reports";
 const IS_TOUCH = (typeof window !== "undefined") && (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
 
 /* ---------- Helpers ---------- */
@@ -1153,13 +1153,15 @@ function buildDemoFixtures(){
     unitCost: d.cost, lastRestocked: "", supplierText: "", supplierContactId: ""
   }));
 
-  const MOVE_TYPES = ["Delivery In","Used on Job","Lost or Damaged","Adjustment Up","Adjustment Down","Move to Truck","Move to Workshop"];
+  // Weighted so wastage/delivery ratios stay plausible — a uniform pick
+  // across all seven types makes "Lost or Damaged" outrun "Delivery In".
+  const DEMO_MOVE_TYPES = ["Delivery In","Delivery In","Delivery In","Used on Job","Used on Job","Used on Job","Used on Job","Move to Truck","Move to Workshop","Lost or Damaged","Adjustment Up","Adjustment Down"];
   const familiesWithJobs = state.cases.filter(c => c.value > 0);
   const movements = [];
   for(let i=0;i<400;i++){
     const item = pick(state.stockItems);
-    const type = pick(MOVE_TYPES);
-    const qty = randInt(1,15);
+    const type = pick(DEMO_MOVE_TYPES);
+    const qty = type === "Delivery In" ? randInt(10,40) : randInt(1,15);
     const family = type === "Used on Job" && familiesWithJobs.length ? pick(familiesWithJobs) : null;
     movements.push({
       id: "demo-move-" + i, label: qty + " × " + item.name + " — " + type, itemId: item.id, type,
@@ -2004,6 +2006,231 @@ function renderCreditPanel(){
 }
 
 /* ---------- Screen: Reports ---------- */
+/* ---------- Reports: shared thresholds ---------- */
+const SIGNOFF_SENT_STALE_DAYS = 5;
+const STALE_LIVE_FAMILY_DAYS = 14;
+const UNVEILING_WINDOW_DAYS = 60;
+const UNVEILING_AT_RISK_DAYS = 14;
+const UNVEILING_URGENT_DAYS = 7;
+
+function reportErrorPanel(title, err){
+  return '<section class="panel" style="padding:18px;margin-top:16px">' +
+    '<h2 class="h2" style="font-size:15px">' + esc(title) + '</h2>' +
+    '<div class="empty-state">Couldn\'t load this panel (' + esc(err.message) + ').</div>' +
+  '</section>';
+}
+
+/* ---------- Reports: Data health ---------- */
+function dataHealthChecks(){
+  const live = liveCases();
+  const paidByFamily = {};
+  state.payments.forEach(p => { paidByFamily[p.familyId] = (paidByFamily[p.familyId]||0) + (Number(p.amount)||0); });
+  return [
+    { label:"Deposit Confirmed with no deposit recorded", families: live.filter(c => c.stage === "Deposit Confirmed" && !c.deposit) },
+    { label:"Phone number looks invalid", families: live.filter(c => c.phone && !c.phoneValid) },
+    { label:"Quoted but no estimate number", families: live.filter(c => c.value > 0 && !c.estimateNumber) },
+    { label:"Sign-off sent more than " + SIGNOFF_SENT_STALE_DAYS + " days ago, no response", families: live.filter(c => c.signoffStatus === "Sent" && c.signoffSentAt && daysSince(c.signoffSentAt) > SIGNOFF_SENT_STALE_DAYS) },
+    { label:"No update in " + STALE_LIVE_FAMILY_DAYS + " days", families: live.filter(c => daysSince(c.updatedAt) > STALE_LIVE_FAMILY_DAYS) },
+    { label:"Installation or later, no installed date", families: live.filter(c => ["Installation","After-Installation Service"].includes(c.stage) && !c.installedDate) },
+    { label:"Missing town", families: live.filter(c => !c.town) },
+    { label:"Missing lead source", families: live.filter(c => !c.leadSource) },
+    { label:"Payments Ledger total doesn't match Amount Paid", families: state.cases.filter(c => Math.abs((paidByFamily[c.id]||0) - (c.paid||0)) > 0.5) }
+  ];
+}
+function renderDataHealthSection(){
+  try{
+    const rules = dataHealthChecks().filter(r => r.families.length);
+    const body = rules.length ? rules.map(r =>
+      '<div style="margin-bottom:14px">' +
+        '<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600"><span>' + esc(r.label) + '</span><span>' + plural(r.families.length,"family") + '</span></div>' +
+        '<div style="margin-top:7px">' +
+          r.families.slice(0,10).map(c => '<button class="chip" data-open="' + esc(c.id) + '" style="margin:0 6px 6px 0">' + esc(c.family) + '</button>').join("") +
+          (r.families.length > 10 ? '<span style="font-size:11.5px;color:var(--ink-soft)">+' + (r.families.length-10) + ' more</span>' : "") +
+        '</div>' +
+      '</div>'
+    ).join("") : '<div class="empty-state">No data issues found — nice and tidy.</div>';
+    return '<section class="panel" style="padding:18px;margin-top:16px">' +
+      '<h2 class="h2" style="font-size:15px">Data health</h2>' +
+      '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Records worth a quick fix — click a family to open it</div>' +
+      '<div style="margin-top:14px">' + body + '</div>' +
+    '</section>';
+  }catch(err){ return reportErrorPanel("Data health", err); }
+}
+
+/* ---------- Reports: Materials per job ---------- */
+function materialsPerJob(){
+  const itemsById = {}; state.stockItems.forEach(i => itemsById[i.id] = i);
+  const byFamily = {};
+  state.stockMovements.filter(m => m.type === "Used on Job" && m.familyId).forEach(m => {
+    const item = itemsById[m.itemId];
+    const unitCost = m.unitCost || (item ? item.unitCost : 0) || 0;
+    if(!byFamily[m.familyId]) byFamily[m.familyId] = { cost:0, anyCostFound:false };
+    if(unitCost > 0) byFamily[m.familyId].anyCostFound = true;
+    byFamily[m.familyId].cost += m.qty * unitCost;
+  });
+  return Object.keys(byFamily).map(familyId => {
+    const c = state.cases.find(x => x.id === familyId);
+    if(!c) return null;
+    const materialsCost = byFamily[familyId].cost;
+    const margin = c.value - materialsCost;
+    const marginPct = c.value > 0 ? (margin / c.value) * 100 : null;
+    return { c, materialsCost, margin, marginPct, noCost: !byFamily[familyId].anyCostFound };
+  }).filter(Boolean).sort((a,b) => b.materialsCost - a.materialsCost);
+}
+function consumptionByItemMonth(){
+  const now = new Date();
+  const months = [];
+  for(let i=5;i>=0;i--){ months.push(new Date(now.getFullYear(), now.getMonth()-i, 1)); }
+  const itemsById = {}; state.stockItems.forEach(i => itemsById[i.id] = i);
+  const usedItemIds = [...new Set(state.stockMovements.filter(m => m.type==="Used on Job").map(m => m.itemId))];
+  return usedItemIds.map(itemId => {
+    const item = itemsById[itemId];
+    const byMonth = months.map(() => 0);
+    state.stockMovements.filter(m => m.itemId===itemId && m.type==="Used on Job").forEach(m => {
+      const d = new Date(m.date + "T00:00:00");
+      if(isNaN(d.getTime())) return;
+      const idx = months.findIndex(mo => mo.getMonth()===d.getMonth() && mo.getFullYear()===d.getFullYear());
+      if(idx >= 0) byMonth[idx] += m.qty;
+    });
+    return { name: item ? item.name : "Unknown item", byMonth };
+  }).filter(r => r.byMonth.some(q => q > 0));
+}
+function wastageByItem(){
+  const sums = {};
+  state.stockMovements.forEach(m => {
+    if(!sums[m.itemId]) sums[m.itemId] = { deliveryIn:0, lostOrDamaged:0, adjustDown:0 };
+    if(m.type === "Delivery In") sums[m.itemId].deliveryIn += m.qty;
+    else if(m.type === "Lost or Damaged") sums[m.itemId].lostOrDamaged += m.qty;
+    else if(m.type === "Adjustment Down") sums[m.itemId].adjustDown += m.qty;
+  });
+  const itemsById = {}; state.stockItems.forEach(i => itemsById[i.id] = i);
+  return Object.keys(sums).map(itemId => {
+    const s = sums[itemId];
+    const wastageQty = s.lostOrDamaged + s.adjustDown;
+    if(!wastageQty && !s.deliveryIn) return null;
+    return { name: (itemsById[itemId] || {}).name || "Unknown item", pct: s.deliveryIn > 0 ? (wastageQty / s.deliveryIn) * 100 : null };
+  }).filter(Boolean);
+}
+function renderMaterialsSection(){
+  try{
+    const jobs = materialsPerJob();
+    const consumption = consumptionByItemMonth();
+    const wastage = wastageByItem();
+    const now = new Date();
+    const monthLabels = [];
+    for(let i=5;i>=0;i--){ monthLabels.push(new Date(now.getFullYear(), now.getMonth()-i, 1).toLocaleDateString("en-ZA",{month:"short"})); }
+
+    const jobsTable = jobs.length ? '<div class="table-wrap"><table><thead><tr><th>Family</th><th class="right">Quoted</th><th class="right">Materials cost</th><th class="right">Margin</th></tr></thead><tbody>' +
+      jobs.map(j => '<tr class="rowclick" data-open="' + esc(j.c.id) + '">' +
+        '<td style="font-weight:700">' + esc(j.c.family) + '</td>' +
+        '<td class="right">' + (j.c.value ? ZAR(j.c.value) : "—") + '</td>' +
+        '<td class="right">' + (j.noCost ? '<span style="color:var(--ink-soft)">no cost recorded</span>' : ZAR(j.materialsCost)) + '</td>' +
+        '<td class="right" style="font-weight:700">' + (j.noCost || j.marginPct===null ? "—" : ZAR(j.margin) + ' (' + Math.round(j.marginPct) + '%)') + '</td>' +
+      '</tr>').join("") + '</tbody></table></div>'
+      : '<div class="empty-state">No materials logged against a family yet.</div>';
+
+    const consumptionTable = consumption.length ? '<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Item</th>' + monthLabels.map(m => '<th class="right">'+esc(m)+'</th>').join("") + '</tr></thead><tbody>' +
+      consumption.map(r => '<tr><td>' + esc(r.name) + '</td>' + r.byMonth.map(q => '<td class="right">' + (q || "—") + '</td>').join("") + '</tr>').join("") + '</tbody></table></div>'
+      : '<div class="empty-state" style="padding:20px 0">No consumption logged in the last 6 months.</div>';
+
+    const wastageList = wastage.length ? wastage.map(w =>
+      '<div class="dur-row"><span>' + esc(w.name) + '</span><span>' + (w.pct===null ? "—" : Math.round(w.pct) + "%") + '</span></div>'
+    ).join("") : '<div class="empty-state" style="padding:20px 0">No wastage recorded yet.</div>';
+
+    return '<div class="rep-grid" style="margin-top:16px">' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Materials per job</h2>' +
+        '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Materials only, excludes labour and transport</div>' +
+        '<div style="margin-top:14px">' + jobsTable + '</div>' +
+        '<h2 class="h2" style="font-size:14px;margin-top:22px">Consumption by item, last 6 months</h2>' +
+        consumptionTable +
+      '</section>' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Wastage by item</h2>' +
+        '<div style="font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.5">(Lost or Damaged + Adjustment Down) ÷ Delivery In</div>' +
+        '<div style="margin-top:14px">' + wastageList + '</div>' +
+      '</section>' +
+    '</div>';
+  }catch(err){ return reportErrorPanel("Materials per job", err); }
+}
+
+/* ---------- Reports: Cash collected ---------- */
+function renderCashCollectedSection(){
+  try{
+    const now = new Date();
+    const months = [];
+    for(let i=7;i>=0;i--){ months.push(new Date(now.getFullYear(), now.getMonth()-i, 1)); }
+    const byMonth = months.map(d => {
+      const total = state.payments.filter(p => {
+        const pd = new Date(p.date + "T00:00:00");
+        return pd.getMonth()===d.getMonth() && pd.getFullYear()===d.getFullYear();
+      }).reduce((a,p) => a + (Number(p.amount)||0), 0);
+      return { month: d.toLocaleDateString("en-ZA",{month:"short"}), total };
+    });
+    const maxMonth = Math.max(1, ...byMonth.map(m=>m.total));
+
+    const byMethod = PAYMENT_METHODS.map(m => ({ method:m, total: state.payments.filter(p=>p.method===m).reduce((a,p)=>a+(Number(p.amount)||0),0) }));
+    const maxMethod = Math.max(1, ...byMethod.map(m=>m.total));
+
+    return '<div class="rep-grid" style="margin-top:16px">' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">Cash collected by month</h2>' +
+        '<div class="chart-row">' + byMonth.map(m =>
+          '<div class="chart-col"><div class="chart-total">' + (m.total ? ZAR(m.total) : "—") + '</div>' +
+          '<div class="chart-bar" style="height:' + Math.round((m.total/maxMonth)*100) + '%"><div class="won" style="height:100%"></div></div>' +
+          '<div class="chart-month">' + m.month + '</div></div>'
+        ).join("") + '</div>' +
+      '</section>' +
+      '<section class="panel" style="padding:18px">' +
+        '<h2 class="h2" style="font-size:15px">By method</h2>' +
+        '<div style="margin-top:14px">' + byMethod.map(m =>
+          '<div class="town-row"><div class="row"><span>' + esc(m.method) + '</span><span>' + ZAR(m.total) + '</span></div>' +
+          '<div class="track"><div class="fill" style="width:' + Math.round((m.total/maxMethod)*100) + '%"></div></div></div>'
+        ).join("") + '</div>' +
+      '</section>' +
+    '</div>';
+  }catch(err){ return reportErrorPanel("Cash collected", err); }
+}
+
+/* ---------- Reports: Unveiling watch ---------- */
+function unveilingWatchList(){
+  const now = Date.now(), DAY = 86400000;
+  const readyIdx = STAGES.indexOf("Ready to Install");
+  return liveCases().map(c => {
+    const d = parseLooseDate(c.unveiling);
+    if(!d) return null;
+    const diffDays = Math.round((d.getTime() - now) / DAY);
+    if(diffDays < 0 || diffDays > UNVEILING_WINDOW_DAYS) return null;
+    const checklistDone = [c.checklistSlab,c.checklistStencil,c.checklistEngraved,c.checklistPolished].filter(Boolean).length;
+    const stageIdx = STAGES.indexOf(c.stage);
+    let risk = "On track";
+    if(diffDays <= UNVEILING_URGENT_DAYS && !c.installedDate) risk = "Urgent";
+    else if(diffDays <= UNVEILING_AT_RISK_DAYS && stageIdx < readyIdx) risk = "At risk";
+    return { c, date:d, diffDays, checklistDone, risk };
+  }).filter(Boolean).sort((a,b) => a.diffDays - b.diffDays);
+}
+function renderUnveilingWatchSection(){
+  try{
+    const rows = unveilingWatchList();
+    const riskColor = { "Urgent":"var(--rust)", "At risk":"var(--amber)", "On track":"var(--green-deep)" };
+    const body = rows.length ? '<div class="table-wrap"><table><thead><tr><th>Family</th><th>Stage</th><th>Unveiling</th><th class="right">Days left</th><th>Checklist</th><th>Risk</th></tr></thead><tbody>' +
+      rows.map(r => '<tr class="rowclick" data-open="' + esc(r.c.id) + '">' +
+        '<td style="font-weight:700">' + esc(r.c.family) + '</td>' +
+        '<td><span class="stagepill" style="background:' + STAGE_COLOR[r.c.stage] + '22;color:var(--ink)">' + esc(r.c.stage) + '</span></td>' +
+        '<td>' + fmtDate(r.date) + '</td>' +
+        '<td class="right">' + r.diffDays + '</td>' +
+        '<td>' + r.checklistDone + '/4</td>' +
+        '<td><span class="stagepill" style="background:' + riskColor[r.risk] + '22;color:' + riskColor[r.risk] + '">' + r.risk + '</span></td>' +
+      '</tr>').join("") + '</tbody></table></div>'
+      : '<div class="empty-state">No unveilings in the next ' + UNVEILING_WINDOW_DAYS + ' days.</div>';
+    return '<section class="panel" style="padding:18px;margin-top:16px">' +
+      '<h2 class="h2" style="font-size:15px">Unveiling watch</h2>' +
+      '<div style="font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.5">Next ' + UNVEILING_WINDOW_DAYS + ' days · at risk: ' + UNVEILING_AT_RISK_DAYS + ' days or fewer and before Ready to Install · urgent: ' + UNVEILING_URGENT_DAYS + ' days or fewer and not installed</div>' +
+      '<div style="margin-top:14px">' + body + '</div>' +
+    '</section>';
+  }catch(err){ return reportErrorPanel("Unveiling watch", err); }
+}
+
 function renderReports(){
   const el = document.getElementById("screen-reports");
   const now = new Date();
@@ -2063,7 +2290,13 @@ function renderReports(){
         ).join("") : '<div class="empty-state">No lost families with a reason yet.</div>') + '</div>' +
       '</section>' +
     '</div>' +
-  '</div>';
+  '</div>' +
+  renderDataHealthSection() +
+  renderMaterialsSection() +
+  renderCashCollectedSection() +
+  renderUnveilingWatchSection();
+
+  el.querySelectorAll("[data-open]").forEach(row => row.addEventListener("click", () => openDrawer(row.dataset.open)));
 }
 
 /* ---------- Screen: On the road ---------- */
@@ -3179,6 +3412,11 @@ if("serviceWorker" in navigator){
     navigator.serviceWorker.register("/sw-crm.js", { scope: "/crm.html" }).catch(() => {});
   });
 }
+
+// Runs last, after every const/function above is initialized — boot()
+// touches STAGES/TOWNS/etc. synchronously in demo mode (no network
+// await to naturally delay it past their declarations).
+if(localStorage.getItem("exhale_crm_key")) showApp();
 </script>
 </body>
 </html>
