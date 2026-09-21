@@ -813,7 +813,8 @@ const NAV = [
 ];
 
 /* ---------- State ---------- */
-const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null, stockItems:[], stockMovements:[], suppliers:[], stockItemEditingId:null, supplierEditingId:null };
+const state = { screen:"dash", query:"", filter:"Everyone", drawer:null, thread:null, cases:[], conversations:[], convError:"", catalog:[], catalogEditingId:null, stockItems:[], stockMovements:[], suppliers:[], stockItemEditingId:null, supplierEditingId:null, payments:[], stageLog:[] };
+const DEMO_MODE = new URLSearchParams(location.search).get("demo") === "reports";
 const IS_TOUCH = (typeof window !== "undefined") && (("ontouchstart" in window) || (navigator.maxTouchPoints > 0));
 
 /* ---------- Helpers ---------- */
@@ -1016,9 +1017,35 @@ function lowStockItems(){
   return state.stockItems.filter(i => i.stockStatus === "Low Stock" || (i.reorderThreshold > 0 && i.currentStock <= i.reorderThreshold));
 }
 
+async function loadAllPayments(){
+  try{
+    const res = await apiFetch("/.netlify/functions/payments-list");
+    const data = await res.json();
+    state.payments = res.ok ? (data.payments || []) : [];
+  }catch(err){
+    state.payments = [];
+  }
+}
+async function loadStageLog(){
+  try{
+    const res = await apiFetch("/.netlify/functions/stage-log-list");
+    const data = await res.json();
+    state.stageLog = res.ok ? (data.stageLog || []) : [];
+  }catch(err){
+    state.stageLog = [];
+  }
+}
+
 async function loadAll(){
   const banner = document.getElementById("errorBanner");
   banner.classList.remove("show");
+
+  if(DEMO_MODE){
+    buildDemoFixtures();
+    render();
+    return;
+  }
+
   try{
     await loadCases();
   }catch(err){
@@ -1028,7 +1055,147 @@ async function loadAll(){
   await loadConversations();
   await loadCatalog();
   await loadStock();
+  await loadAllPayments();
+  await loadStageLog();
   render();
+}
+
+/* ---------- Demo fixtures (?demo=reports) ----------
+   Generates a realistic volume of data entirely client-side so the
+   Reports screen can be checked without touching production Notion
+   data. Nothing here is ever written anywhere. */
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function buildDemoFixtures(){
+  const rand = mulberry32(20260921);
+  const pick = arr => arr[Math.floor(rand()*arr.length)];
+  const randInt = (min,max) => min + Math.floor(rand()*(max-min+1));
+  const now = Date.now(), DAY = 86400000;
+  const iso = ms => new Date(ms).toISOString();
+  const isoDate = ms => new Date(ms).toISOString().slice(0,10);
+
+  const FIRST_NAMES = ["Nomvula","Thabo","Zanele","Sipho","Nolwazi","Mandla","Ayanda","Lindiwe","Bongani","Pumla","Andile","Nosipho","Themba","Zodwa","Sizwe","Nokuthula","Vusi","Ntombi","Sabelo","Fikile","Johan","Anna","Pieter","Marie","Kagiso"];
+  const LAST_NAMES = ["Dlamini","Mkhize","Ndlovu","Zulu","Khumalo","Mahlangu","Nkosi","Mokoena","Radebe","Sithole","Cele","Mbeki","Xaba","Botha","Fourie","Van Wyk","Pretorius","Mtshali","Gumede","Ngcobo"];
+  const REFERRERS = ["Rev. Dlamini","Sunset Funeral Home","Peace Funerals","Nomvula M. (past client)","St Mary's Parish","Ubuntu Funeral Services"];
+
+  const rawEnquiries = [];
+  for(let i=0;i<200;i++){
+    const name = pick(FIRST_NAMES) + " " + pick(LAST_NAMES);
+    const stage = pick(STAGES);
+    const submittedMs = now - randInt(5,400)*DAY;
+    const town = pick(TOWNS);
+    const interest = pick(INTERESTS);
+    const wonStage = !["Lead","Lost"].includes(stage);
+    const value = wonStage || rand()<0.3 ? randInt(8,60)*1000 : 0;
+    const depositStages = ["Deposit Confirmed","Artwork","Artwork Approval","Manufacturing","Ready to Install","Installation","After-Installation Service"];
+    const depositPaid = depositStages.includes(stage) ? true : rand()<0.1;
+    const paid = value ? Math.round(value * (depositPaid ? randInt(30,100)/100 : randInt(0,15)/100)) : 0;
+    const phoneValid = rand() < 0.88;
+    const hasUnveiling = rand() < 0.35;
+    const unveiling = hasUnveiling ? isoDate(now + randInt(-20,90)*DAY) : "";
+    const installedDate = ["Installation","After-Installation Service"].includes(stage) && rand()<0.75 ? isoDate(now - randInt(1,60)*DAY) : "";
+    const estimateNumber = value && rand()<0.85 ? "EST-" + String(1000+i) : "";
+    const signoffStatus = rand()<0.55 ? pick(["Not Sent","Sent","Approved","Changes Requested"]) : "";
+    const signoffSentAt = signoffStatus === "Sent" ? isoDate(now - randInt(0,20)*DAY) : "";
+    const lostReason = stage === "Lost" ? pick(LOST_REASONS) : "";
+    const leadSource = rand()<0.08 ? "" : pick(LEAD_SOURCES);
+    const referredBy = REFERRAL_LEAD_SOURCES.includes(leadSource) && rand()<0.75 ? pick(REFERRERS) : "";
+
+    rawEnquiries.push({
+      id: "demo-fam-" + i, url: "",
+      name, phone: phoneValid ? "082" + String(randInt(1000000,9999999)) : "123",
+      email: "", interest, message: "", town,
+      landmark: "", unveiling, site_access: "", location_pin: "",
+      phone_valid: phoneValid, status: stage,
+      deposit_paid: depositPaid, deposit_date: depositPaid ? isoDate(submittedMs + randInt(1,20)*DAY) : "",
+      installed_date: installedDate, notes: "",
+      submitted_at: iso(submittedMs), updated_at: iso(now - randInt(0,30)*DAY),
+      deceased_name: "", date_of_birth: "", date_of_death: "", cemetery: "", plot_number: "",
+      quoted_value: value, amount_paid: paid,
+      payment_option: value ? pick(PAYMENT_OPTIONS) : "", payment_plan: "",
+      production_progress: 0, assigned_to: "", memorial_spec: "",
+      estimate_number: estimateNumber, estimate_date: estimateNumber ? isoDate(submittedMs) : "",
+      invoice_number: "", invoice_date: "",
+      credit_provider: "", credit_status: "", credit_approved_amount: 0, credit_reference: "",
+      installments: "[]", proposal_items: "[]", design_images: [], reference_photos: [],
+      signoff_token: signoffStatus ? "demo-tok-" + i : "", signoff_status: signoffStatus,
+      signoff_date: "", signoff_sent_at: signoffSentAt, signoff_note: "",
+      terrain_type: "", ground_profile: "",
+      checklist_slab: rand()<0.5, checklist_stencil: rand()<0.4, checklist_engraved: rand()<0.3, checklist_polished: rand()<0.2,
+      tracker_token: "", lost_reason: lostReason, lost_reason_detail: "",
+      lead_source: leadSource, referred_by: referredBy
+    });
+  }
+  state.cases = rawEnquiries.map(normalize);
+
+  const ITEM_DEFS = [
+    { name:"Granite slab — black", unit:"pc", cost:2200 },
+    { name:"Granite slab — grey", unit:"pc", cost:1800 },
+    { name:"Engraving stencil", unit:"pc", cost:120 },
+    { name:"Polish compound", unit:"L", cost:180 },
+    { name:"Cutting disc", unit:"pc", cost:340 },
+    { name:"Adhesive resin", unit:"L", cost:260 },
+    { name:"Cement", unit:"bag", cost:95 },
+    { name:"Sand", unit:"bag", cost:60 },
+    { name:"Foundation blocks", unit:"pc", cost:45 },
+    { name:"Gold leaf lettering kit", unit:"pc", cost:410 }
+  ];
+  state.stockItems = ITEM_DEFS.map((d,i) => ({
+    id: "demo-item-" + i, name: d.name, category: "Consumables", unit: d.unit,
+    truckQty: randInt(0,20), workshopQty: randInt(0,40), currentStock: randInt(10,60),
+    reorderThreshold: 10, stockStatus: rand()<0.15 ? "Low Stock" : "OK",
+    unitCost: d.cost, lastRestocked: "", supplierText: "", supplierContactId: ""
+  }));
+
+  const MOVE_TYPES = ["Delivery In","Used on Job","Lost or Damaged","Adjustment Up","Adjustment Down","Move to Truck","Move to Workshop"];
+  const familiesWithJobs = state.cases.filter(c => c.value > 0);
+  const movements = [];
+  for(let i=0;i<400;i++){
+    const item = pick(state.stockItems);
+    const type = pick(MOVE_TYPES);
+    const qty = randInt(1,15);
+    const family = type === "Used on Job" && familiesWithJobs.length ? pick(familiesWithJobs) : null;
+    movements.push({
+      id: "demo-move-" + i, label: qty + " × " + item.name + " — " + type, itemId: item.id, type,
+      location: pick(["Truck","Workshop"]), qty, supplierId: "", familyId: family ? family.id : "",
+      unitCost: rand()<0.85 ? item.unitCost : 0, date: isoDate(now - randInt(0,220)*DAY),
+      loggedBy: "", notes: "", receiptUrl: ""
+    });
+  }
+  state.stockMovements = movements;
+
+  const payFamilies = state.cases.filter(c => c.paid > 0);
+  const payments = [];
+  for(let i=0;i<300;i++){
+    const fam = payFamilies.length ? pick(payFamilies) : pick(state.cases);
+    payments.push({
+      id: "demo-pay-" + i, familyId: fam.id, label: fam.family + " payment",
+      amount: randInt(500,15000), method: pick(PAYMENT_METHODS),
+      date: isoDate(now - randInt(0,250)*DAY), proofUrl: ""
+    });
+  }
+  state.payments = payments;
+
+  const stageLog = [];
+  state.cases.forEach((c,i) => {
+    stageLog.push({ id: "demo-sl-base-" + i, familyId: c.id, from: "", to: "Lead", changedAt: c.submittedAt, lostReason: "", baseline: true });
+  });
+  let n = 0;
+  while(stageLog.length < 2000){
+    const c = pick(state.cases);
+    const from = pick(STAGES), to = pick(STAGES);
+    if(from === to) continue;
+    stageLog.push({ id: "demo-sl-" + (n++), familyId: c.id, from, to, changedAt: iso(now - randInt(0,300)*DAY), lostReason: to==="Lost" ? pick(LOST_REASONS) : "", baseline: false });
+  }
+  state.stageLog = stageLog;
+
+  state.catalog = []; state.suppliers = []; state.conversations = []; state.convError = "";
 }
 
 /* ---------- Writes ---------- */
