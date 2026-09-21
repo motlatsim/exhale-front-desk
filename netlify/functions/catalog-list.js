@@ -3,6 +3,7 @@
 // staff can add to a family's proposal.
 
 const { requireKey } = require("./_require-key");
+const { notionQueryAll } = require("./_notion-query-all");
 
 const CATALOG_DATABASE_ID = "c8b6094c0afa47c1b2ba5a6def53d340";
 
@@ -14,19 +15,14 @@ exports.handler = async function (event) {
   if (!token) return { statusCode: 500, body: JSON.stringify({ error: "NOTION_API_KEY not set" }) };
 
   try {
-    const res = await fetch(`https://api.notion.com/v1/databases/${CATALOG_DATABASE_ID}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ page_size: 100 })
-    });
-    const data = await res.json();
-    if (!res.ok) return { statusCode: res.status, body: JSON.stringify({ error: data.message || "Notion query failed" }) };
+    const notionHeaders = {
+      "Authorization": `Bearer ${token}`,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json"
+    };
+    const pages = await notionQueryAll(CATALOG_DATABASE_ID, {}, notionHeaders);
 
-    const items = (data.results || []).map(page => {
+    const items = pages.map(page => {
       const p = page.properties || {};
       const title = p["Name"] && p["Name"].title;
       const name = title && title.length ? title.map(t => t.plain_text).join("") : "Untitled item";
@@ -46,6 +42,6 @@ exports.handler = async function (event) {
 
     return { statusCode: 200, body: JSON.stringify({ items }) };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: err.statusCode || 500, body: JSON.stringify({ error: err.message }) };
   }
 };
