@@ -242,11 +242,13 @@
     .grid{ grid-template-columns: 1fr; }
   }
 
-  /* Below 760px this stops being a fixed-height "kiosk display" (which only
-     works with a tall desktop viewport) and becomes a normal page that
+  /* Below 760px wide, OR whenever the viewport is too short (e.g. a phone
+     turned to landscape, where width comfortably clears 760px but height
+     drops to ~350-430px), this stops being a fixed-height "kiosk display"
+     (which only works with a tall viewport) and becomes a normal page that
      scrolls — every panel shows its full content instead of clipping it
-     into a fixed internal scroll area. */
-  @media (max-width: 760px){
+     into a fixed internal scroll area with no way to reach the rest. */
+  @media (max-width: 760px), (max-height: 500px){
     html, body{ height:auto; overflow:visible; }
     .shell{ height:auto; min-height:100vh; }
     header{ padding:16px 18px; }
