@@ -76,6 +76,9 @@
 
   .main{flex:1;min-width:0;display:flex;flex-direction:column}
   .topbar{display:flex;align-items:center;gap:16px;padding:18px 26px;background:color-mix(in srgb, var(--cream) 90%, transparent);border-bottom:1px solid var(--hairline);position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
+  .menu-btn{display:none;background:none;border:1px solid var(--hairline);color:var(--ink);border-radius:8px;width:36px;height:36px;flex:0 0 36px;align-items:center;justify-content:center;cursor:pointer}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(43,45,55,.5);z-index:70}
+  .sidebar-backdrop.open{display:block}
   .topbar .titles{flex:1 1 auto;min-width:0}
   .topbar h1{font-family:'Poppins',sans-serif;font-size:20px;font-weight:600;line-height:1.2}
   .topbar .sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -405,6 +408,7 @@
     .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s;z-index:80}
     .sidebar.open{transform:translateX(0)}
     .app.open{display:block}
+    .menu-btn{display:flex}
     .topbar{flex-wrap:wrap}
     .field-row{grid-template-columns:1fr}
   }
@@ -491,7 +495,8 @@
 </div>
 
 <div class="app" id="app">
-  <aside class="sidebar">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="brand-row">
       <div class="brand-logo">
         <span class="brand-word">exhale<svg class="brand-arrow" viewBox="0 0 40 40" fill="none"><path d="M20 6h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/><path d="M8 18h12a2 2 0 0 1 2 2v12" stroke="#20C997" stroke-width="7" stroke-linecap="round"/></svg></span>
@@ -514,6 +519,9 @@
 
   <div class="main">
     <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Open navigation">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
       <div class="titles">
         <h1 id="screenTitle">Today</h1>
         <div class="sub" id="screenSub"></div>
@@ -1245,9 +1253,20 @@ function renderNav(){
       '<span class="lbl">' + item.label + '</span>' + badge + '</button>';
   }).join("");
   nav.querySelectorAll("[data-nav]").forEach(btn => {
-    btn.addEventListener("click", () => { state.screen = btn.dataset.nav; render(); });
+    btn.addEventListener("click", () => { state.screen = btn.dataset.nav; closeSidebar(); render(); });
   });
 }
+
+function openSidebar(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("sidebarBackdrop").classList.add("open");
+}
+function closeSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("sidebarBackdrop").classList.remove("open");
+}
+document.getElementById("menuBtn").addEventListener("click", openSidebar);
+document.getElementById("sidebarBackdrop").addEventListener("click", closeSidebar);
 
 const TITLES = {
   dash: () => ["Today", plural(attentionList().length, "family") + " need something from us today"],
