@@ -9,7 +9,7 @@
 
 const crypto = require("crypto");
 
-const GATE_HASH = "6dc6da2a4d2f76400701a5c58c07d795098208a2b904f899ec76a024e55f8718";
+   const GATE_HASH = "f7950f743cc6e9491b72c91568a5bb4caa3e870cb3c9682666db9128e957db16";
 
 exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
