@@ -16,6 +16,17 @@ Environment variables read by these functions (set in Netlify site settings):
   staff device. `tools/hash-password.js` prints a fresh candidate alongside the
   password hash.
 - `PEACH_API_TOKEN` — optional, used by `crm-create.js` for the WhatsApp hand-off.
+- `BACKUP_GITHUB_TOKEN` — used only by `crm-backup.mjs` (the daily backup). A
+  fine-grained GitHub PAT with **Contents: read and write on the backup repo
+  only**, nothing else. The daily snapshot contains family names, phones and
+  payment records, so the token must be this narrow and the repo must be
+  private.
+- `BACKUP_GITHUB_REPO` — `owner/repo` of the PRIVATE repo the backup commits to.
+- `BACKUP_GITHUB_BRANCH` — optional, defaults to `main`.
+  `crm-backup.mjs` is a Netlify scheduled function (runs daily); it reads every
+  CRM database and commits one timestamped JSON snapshot to that repo. If any of
+  the three backup vars is missing it logs and returns 500 (visible in the
+  function's logs) rather than failing silently.
 - `NOTION_STAGE_LOG_DB_ID` — the "Stage Log" database (one row per family stage
   change, written by `crm-update.js`, read by `stage-log-list.js`). For this
   workspace: `bd30a53e-c9c2-4cac-890b-b87c0e2dd3db`. It lives under the same
